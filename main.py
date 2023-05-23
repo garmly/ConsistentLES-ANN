@@ -1,0 +1,1 @@
+global nu,dx,dy,dz,dt,kxx,kyy,kzz,Nx,Ny,Nz
