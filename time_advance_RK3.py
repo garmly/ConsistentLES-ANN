@@ -20,20 +20,24 @@ def time_advance_RK3(grid):
     u,v,w = u0,v0,w0
 
     # Have d/dx_i F each be a numpy array
-    Fu, Fv, Fw = np.zeros([grid.Nx,grid.Ny,grid.Nz,3])
+    Fu = np.zeros([grid.Nx,grid.Ny,grid.Nz,3])
+    Fv = np.zeros([grid.Nx,grid.Ny,grid.Nz,3])
+    Fw = np.zeros([grid.Nx,grid.Ny,grid.Nz,3])
 
     for i in range(3):
-        grid.u = u0 + h*np.sum(Fu * a[i:(i+1)], axis=-1)
-        grid.v = v0 + h*np.sum(Fv * a[i:(i+1)], axis=-1)
-        grid.w = w0 + h*np.sum(Fw * a[i:(i+1)], axis=-1)
+        grid.u = u0 + h*np.sum(Fu * a[i,:], axis=-1)
+        grid.v = v0 + h*np.sum(Fv * a[i,:], axis=-1)
+        grid.w = w0 + h*np.sum(Fw * a[i,:], axis=-1)
 
+        # remove divergence and compute RHS of Navier-Stokes
         grid.u, grid.v, grid.w = compute_projection_step(grid.u, grid.v, grid.w)
         Fui, Fvi, Fwi = compute_RHS(grid)
-        
+
+        # remove divergence from Fu, Fv, Fw
         Fu[..., i], Fv[..., i], Fw[..., i] = compute_projection_step(Fui, Fvi, Fwi)
 
     grid.u = u0 + h * np.sum(Fu * b, axis=-1)
     grid.v = v0 + h * np.sum(Fv * b, axis=-1)
     grid.w = w0 + h * np.sum(Fw * b, axis=-1)
 
-    return grid
+    return grid, h

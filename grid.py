@@ -4,13 +4,14 @@ import numpy as np
 class grid:
     
     # initialize grid of ones
-    def __init__(self, Nx, Ny, Nz, dx, dy, dz):
+    def __init__(self, Nx, Ny, Nz, dx, dy, dz, nu):
         self.Nx = Nx
         self.Ny = Ny
         self.Nz = Nz
         self.dx = dx
         self.dy = dy
         self.dz = dz
+        self.nu = nu
 
         # coordinates defined on the center
         # Indexed as u[X][Y][Z]

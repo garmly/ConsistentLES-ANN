@@ -1,6 +1,6 @@
 from grid import *
-
-global nu,dx,dy,dz,dt,kxx,kyy,kzz,Nx,Ny,Nz,Re
+from time_advance_RK3 import *
+import matplotlib.pyplot as plt
 
 # TODO: Replace with user input
 Lx = 1
@@ -14,7 +14,54 @@ dy = np.pi * 2 / Ny
 dz = np.pi * 2 / Nz
 time = 0
 U0 = 1
-Re = U0 * Lx / 1e-3
+nu = 1e-3
+Re = U0 * Lx / nu
+verbose = True
 
 # initializing grid
-grid = grid(Nx,Ny,Nz,dx,dy,dz)
+grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
+grid_DNS.vortex(-5,1,2.5,1,2.5,1)
+
+i = 0                   # iteration
+tvals = np.array([])    # time values
+uvals = np.array([])    # u values
+vvals = np.array([])    # v values
+wvals = np.array([])    # w values
+rsdlsu = np.array([0])  # residual values of u
+rsdlsv = np.array([0])  # residual values of v
+rsdlsv = np.array([0])  # residual values of w
+
+while (time < 3):
+    grid_DNS, h = time_advance_RK3(grid_DNS)
+    
+    if (verbose):
+        # get the point located at the middle of the grid
+        uvals = np.append(uvals,grid_DNS.u[int(Nx/2)][int(Ny/2)][int(Nz/2)])
+        vvals = np.append(vvals,grid_DNS.v[int(Nx/2)][int(Ny/2)][int(Nz/2)])
+        wvals = np.append(wvals,grid_DNS.w[int(Nx/2)][int(Ny/2)][int(Nz/2)])
+        tvals = np.append(tvals,time)
+
+        if (i > 1):
+            rsdlsu = np.append(rsdlsu, abs(uvals[i] - uvals[i-1]))
+            rsdlsv = np.append(rsdlsv, abs(vvals[i] - vvals[i-1]))
+
+            print("TIME: " + str(time))
+            print("==========================================")
+            print("dT: " + str(h))
+            print("UVAL: " + str(uvals[i]))
+            print("VVAL: " + str(vvals[i]))
+            print("URSD: " + str(abs(uvals[i] - uvals[i-1])))
+            print("VRSD: " + str(abs(vvals[i] - vvals[i-1])))
+            print("==========================================")
+
+            if (i % 1000 == 0):
+                plt.imshow(grid_DNS.v[...,0], interpolation='nearest')
+                plt.show()
+        
+    i += 1
+    time += h
+
+plt.plot(tvals,uvals)
+plt.plot(tvals,vvals)
+plt.plot(tvals,wvals)
+plt.show()
