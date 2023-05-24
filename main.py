@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 Lx = 1
 Ly = 1
 Lz = 1
-Nx = 16
-Ny = 16
-Nz = 16
+Nx = 32
+Ny = 32
+Nz = 32
 dx = np.pi * 2 / Nx
 dy = np.pi * 2 / Ny
 dz = np.pi * 2 / Nz
@@ -38,6 +38,11 @@ rsdlsv = np.array([0])  # residual values of v
 rsdlsv = np.array([0])  # residual values of w
 
 while (time < 3):
+    
+    if (i % 1 == 0):
+        plt.imshow(grid_DNS.u[...,8], interpolation='nearest')
+        plt.show()
+
     grid_DNS, h = time_advance_RK3(grid_DNS)
     
     if (verbose):
@@ -59,14 +64,13 @@ while (time < 3):
             print("URSD: " + str(abs(uvals[i] - uvals[i-1])))
             print("VRSD: " + str(abs(vvals[i] - vvals[i-1])))
             print("==========================================")
+    
+            # check for divergence-free velocity field
+            if (np.max((np.roll(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
+                       (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
+                       (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz) > 1e-10):
+                raise ValueError('Velocity field is not divergence free')
 
-            a,b,c = np.unravel_index(grid_DNS.u.argmax(), grid_DNS.u.shape)
-            print(a,b,c,grid_DNS.u[a][b][c])
-
-            if (i % 10 == 0):
-                plt.imshow(grid_DNS.u[...,c], interpolation='nearest')
-                plt.show()
-        
     i += 1
     time += h
 

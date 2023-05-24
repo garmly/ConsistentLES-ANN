@@ -10,9 +10,9 @@ def compute_projection_step(grid, principal=True): # if True, use u,v,p - if Fal
         w = grid.Fw
 
     # compute divergence of u,v,w
-    div = (np.roll(u,-1,axis=0) - u) + \
-          (np.roll(v,-1,axis=1) - v) + \
-          (np.roll(w,-1,axis=2) - w) 
+    div = (np.roll(u,-1,axis=0) - u) / grid.dx + \
+          (np.roll(v,-1,axis=1) - v) / grid.dy + \
+          (np.roll(w,-1,axis=2) - w) / grid.dz
     
     phat = np.fft.fftn(grid.p)
 
