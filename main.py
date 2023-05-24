@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 Lx = 1
 Ly = 1
 Lz = 1
-Nx = 64
-Ny = 64
-Nz = 64
+Nx = 16
+Ny = 16
+Nz = 16
 dx = np.pi * 2 / Nx
 dy = np.pi * 2 / Ny
 dz = np.pi * 2 / Nz
@@ -20,7 +20,13 @@ verbose = True
 
 # initializing grid
 grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
-grid_DNS.vortex(-5,1,2.5,1,2.5,1)
+grid_DNS.vortex(-5,2,2.5,2,2.5,2)
+grid_DNS.define_wavenumber()
+
+# defining wavenumbers
+kxx = np.zeros(Nx)
+kyy = np.zeros(Ny)
+kzz = np.zeros(Nz)
 
 i = 0                   # iteration
 tvals = np.array([])    # time values
@@ -54,8 +60,11 @@ while (time < 3):
             print("VRSD: " + str(abs(vvals[i] - vvals[i-1])))
             print("==========================================")
 
-            if (i % 1000 == 0):
-                plt.imshow(grid_DNS.v[...,0], interpolation='nearest')
+            a,b,c = np.unravel_index(grid_DNS.u.argmax(), grid_DNS.u.shape)
+            print(a,b,c,grid_DNS.u[a][b][c])
+
+            if (i % 10 == 0):
+                plt.imshow(grid_DNS.u[...,c], interpolation='nearest')
                 plt.show()
         
     i += 1

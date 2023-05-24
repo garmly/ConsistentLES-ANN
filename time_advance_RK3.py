@@ -30,11 +30,11 @@ def time_advance_RK3(grid):
         grid.w = w0 + h*np.sum(Fw * a[i,:], axis=-1)
 
         # remove divergence and compute RHS of Navier-Stokes
-        grid.u, grid.v, grid.w = compute_projection_step(grid.u, grid.v, grid.w)
-        Fui, Fvi, Fwi = compute_RHS(grid)
+        grid.u, grid.v, grid.w = compute_projection_step(grid,True)
+        grid.Fu, grid.Fv, grid.Fw = compute_RHS(grid)
 
         # remove divergence from Fu, Fv, Fw
-        Fu[..., i], Fv[..., i], Fw[..., i] = compute_projection_step(Fui, Fvi, Fwi)
+        Fu[..., i], Fv[..., i], Fw[..., i] = compute_projection_step(grid,False)
 
     grid.u = u0 + h * np.sum(Fu * b, axis=-1)
     grid.v = v0 + h * np.sum(Fv * b, axis=-1)

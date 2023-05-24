@@ -25,14 +25,32 @@ class grid:
         self.z = np.tile(z, (Nx,Ny,1))
 
         # initializing velocity, pressure fields with ones
-        self.u = np.ones([Nx,Ny,Nz])
-        self.v = np.ones([Nx,Ny,Nz])
-        self.w = np.ones([Nx,Ny,Nz])
-        self.p = np.ones([Nx,Ny,Nz])
+        self.u = self.v = self.w = self.p = np.ones([Nx,Ny,Nz])
+
+        # initializing time derivative fields
+        self.Fu = self.Fv = self.Fw = np.ones([Nx,Ny,Nz])
+
+        # initializing wavenumbers
+        self.kxx = np.ones(Nx)
+        self.kyy = np.ones(Ny)
+        self.kzz = np.ones(Nz)
 
     # read from file
     def read(self,filename):
         pass
+
+    def define_wavenumber(self):
+        for i in range(self.Nx):
+            self.kxx[i] = 2*(np.cos(2*np.pi*i/self.Nx) - 1)/self.dx**2 if i < self.Nx / 2 else \
+                          2*(np.cos(2*np.pi*(-self.Nx+i)/self.Nx) - 1 )/self.dx**2
+        
+        for j in range(self.Ny):
+            self.kyy[j] = 2*(np.cos(2*np.pi*j/self.Ny) - 1)/self.dy**2 if i < self.Ny / 2 else \
+                          2*(np.cos(2*np.pi*(-self.Ny+j)/self.Ny) - 1 )/self.dy**2
+        
+        for k in range(self.Nz):
+            self.kzz[i] = 2*(np.cos(2*np.pi*i/self.Nz) - 1)/self.dz**2 if i > self.Nz / 2 else \
+                          2*(np.cos(2*np.pi*(-self.Nz+i)/self.Nz) - 1 )/self.dz**2
 
     # Taylor-Green Vortex
     def vortex(self,A,B,C,a,b,c):
