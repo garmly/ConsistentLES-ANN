@@ -66,6 +66,13 @@ def compute_RHS(grid):
 
     # d(ww)/dz
     ww = (0.5*(grid.w + np.roll(grid.w,-1,axis=1)))**2
-    Fw -= (ww - np.roll(ww,1,axis=0)) / grid.dz
+    Fw -= (ww - np.roll(ww,1,axis=2)) / grid.dz
+
+    # 1/Re * d^2(w)/d(x)^2
+    Fv += grid.nu *(np.roll(grid.w,-1,axis=0) - 2*grid.w + np.roll(grid.w,1,axis=0)) / grid.dx**2
+    # 1/Re * d^2(w)/d(y)^2
+    Fv += grid.nu *(np.roll(grid.w,-1,axis=1) - 2*grid.w + np.roll(grid.w,1,axis=1)) / grid.dy**2
+    # 1/Re * d^2(w)/d(z)^2
+    Fv += grid.nu *(np.roll(grid.w,-1,axis=2) - 2*grid.w + np.roll(grid.w,1,axis=2)) / grid.dz**2
 
     return Fu, Fv, Fw
