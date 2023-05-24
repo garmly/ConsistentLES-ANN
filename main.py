@@ -23,11 +23,6 @@ grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
 grid_DNS.vortex(-5,2,2.5,2,2.5,2)
 grid_DNS.define_wavenumber()
 
-# defining wavenumbers
-kxx = np.zeros(Nx)
-kyy = np.zeros(Ny)
-kzz = np.zeros(Nz)
-
 i = 0                   # iteration
 tvals = np.array([])    # time values
 uvals = np.array([])    # u values
@@ -39,7 +34,7 @@ rsdlsv = np.array([0])  # residual values of w
 
 while (time < 3):
     
-    if (i % 1 == 0):
+    if (i % 100 == 0):
         plt.imshow(grid_DNS.u[...,8], interpolation='nearest')
         plt.show()
 
@@ -65,12 +60,12 @@ while (time < 3):
             print("VRSD: " + str(abs(vvals[i] - vvals[i-1])))
             print("==========================================")
     
-            # check for divergence-free velocity field
-            if (np.max((np.roll(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
-                       (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
-                       (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz) > 1e-10):
-                raise ValueError('Velocity field is not divergence free')
-
+    # check for divergence-free velocity field    
+    if (np.max((np.roll(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
+                (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
+                (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz) > 1e+10):
+        raise ValueError('Velocity field is not divergence free')
+        
     i += 1
     time += h
 

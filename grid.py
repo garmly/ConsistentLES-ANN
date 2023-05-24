@@ -15,9 +15,9 @@ class grid:
 
         # coordinates defined on the center
         # Indexed as u[X][Y][Z]
-        x = np.reshape(np.linspace(dx/2,Nx*dx,Nx), (Nx, 1, 1))
-        y = np.reshape(np.linspace(dy/2,Ny*dy,Ny), (1, Ny, 1))
-        z = np.reshape(np.linspace(dz/2,Nz*dz,Nz), (1, 1, Nz))
+        x = np.reshape(np.linspace(dx/2,(Nx-1)*dx,Nx), (Nx, 1, 1))
+        y = np.reshape(np.linspace(dy/2,(Ny-1)*dy,Ny), (1, Ny, 1))
+        z = np.reshape(np.linspace(dz/2,(Nz-1)*dz,Nz), (1, 1, Nz))
 
         # duplicating row vectors to make a numpy array
         self.x = np.tile(x, (1,Ny,Nz))
@@ -41,23 +41,23 @@ class grid:
 
     def define_wavenumber(self):
         for i in range(self.Nx):
-            self.kxx[i] = 2*(np.cos(2*np.pi*i/self.Nx) - 1)/self.dx**2 if i < self.Nx / 2 else \
-                          2*(np.cos(2*np.pi*(-self.Nx+i)/self.Nx) - 1 )/self.dx**2
-        
+            self.kxx[i] = 2*(np.cos(2*np.pi*i/self.Nx)-1)/self.dx**2 if i < self.Nx / 2 else \
+                          2*(np.cos(2*np.pi*(-self.Nx+i)/self.Nx)-1)/self.dx**2
+
         for j in range(self.Ny):
-            self.kyy[j] = 2*(np.cos(2*np.pi*j/self.Ny) - 1)/self.dy**2 if i < self.Ny / 2 else \
-                          2*(np.cos(2*np.pi*(-self.Ny+j)/self.Ny) - 1 )/self.dy**2
-        
+            self.kyy[j] = 2*(np.cos(2*np.pi*j/self.Ny)-1)/self.dy**2 if i < self.Ny / 2 else \
+                          2*(np.cos(2*np.pi*(-self.Ny+j)/self.Ny)-1)/self.dy**2
+
         for k in range(self.Nz):
-            self.kzz[i] = 2*(np.cos(2*np.pi*i/self.Nz) - 1)/self.dz**2 if i > self.Nz / 2 else \
-                          2*(np.cos(2*np.pi*(-self.Nz+i)/self.Nz) - 1 )/self.dz**2
+            self.kzz[i] = 2*(np.cos(2*np.pi*i/self.Nz)-1)/self.dz**2 if i > self.Nz / 2 else \
+                          2*(np.cos(2*np.pi*(-self.Nz+i)/self.Nz)-1)/self.dz**2
 
     # Taylor-Green Vortex
     def vortex(self,A,B,C,a,b,c):
         if (A*a + B*b + C*c != 0):
             raise ValueError('Not well defined. A*a + B*b + C*C != 0.')
-        
+
         # place u,v,w nodes in staggered grid
-        self.u = A * np.cos(a*(self.x - self.dx)) * np.sin(b*self.y) * np.sin(c*self.z)
-        self.v = B * np.sin(a*self.x) * np.cos(b*(self.y - self.dy)) * np.sin(c*self.z)
-        self.w = C * np.sin(a*self.x) * np.sin(b*self.y) * np.cos(c*(self.z - self.dz))
+        self.u = A * np.cos(a*(self.x - self.dx/2)) * np.sin(b*self.y) * np.sin(c*self.z)
+        self.v = B * np.sin(a*self.x) * np.cos(b*(self.y - self.dy/2)) * np.sin(c*self.z)
+        self.w = C * np.sin(a*self.x) * np.sin(b*self.y) * np.cos(c*(self.z - self.dz/2))

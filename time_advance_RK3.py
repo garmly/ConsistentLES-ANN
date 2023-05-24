@@ -17,7 +17,6 @@ def time_advance_RK3(grid):
 
     # initial conditions
     u0, v0, w0 = grid.u, grid.v, grid.w
-    u,v,w = u0,v0,w0
 
     # Have d/dx_i F each be a numpy array
     Fu = np.zeros([grid.Nx,grid.Ny,grid.Nz,3])
