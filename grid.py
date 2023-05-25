@@ -49,11 +49,11 @@ class grid:
                           2*(np.cos(2*np.pi*(-self.Ny+j)/self.Ny)-1)/self.dy**2
 
         for k in range(self.Nz):
-            self.kzz[i] = 2*(np.cos(2*np.pi*i/self.Nz)-1)/self.dz**2 if i > self.Nz / 2 else \
-                          2*(np.cos(2*np.pi*(-self.Nz+i)/self.Nz)-1)/self.dz**2
+            self.kzz[k] = 2*(np.cos(2*np.pi*k/self.Nz)-1)/self.dz**2 if k < self.Nz / 2 else \
+                          2*(np.cos(2*np.pi*(-self.Nz+k)/self.Nz)-1)/self.dz**2
 
     # Taylor-Green Vortex
-    def vortex(self,A,B,C,a,b,c):
+    def vortex(self,A,a,B,b,C,c):
         if (A*a + B*b + C*c != 0):
             raise ValueError('Not well defined. A*a + B*b + C*C != 0.')
 

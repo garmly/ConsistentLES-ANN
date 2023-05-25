@@ -19,7 +19,7 @@ def compute_projection_step(grid, principal=True): # if True, use u,v,p - if Fal
     for index, value in np.ndenumerate(grid.p):
         kk = grid.kxx[index[0]] + grid.kyy[index[1]] + grid.kzz[index[2]]
         if (not np.array_equal(index, [0,0,0])):
-            phat[index] /= kk    
+            phat[index] /= kk
     
     grid.p = np.fft.ifftn(phat).real
 

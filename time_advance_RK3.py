@@ -33,7 +33,7 @@ def time_advance_RK3(grid):
         grid.Fu, grid.Fv, grid.Fw = compute_RHS(grid)
 
         # remove divergence from Fu, Fv, Fw
-        Fu[..., i], Fv[..., i], Fw[..., i] = compute_projection_step(grid,False)
+        Fu[:,:,:,i], Fv[:,:,:,i], Fw[:,:,:,i] = compute_projection_step(grid,False)
 
     grid.u = u0 + h * np.sum(Fu * b, axis=-1)
     grid.v = v0 + h * np.sum(Fv * b, axis=-1)

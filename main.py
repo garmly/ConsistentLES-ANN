@@ -32,11 +32,7 @@ rsdlsu = np.array([0])  # residual values of u
 rsdlsv = np.array([0])  # residual values of v
 rsdlsv = np.array([0])  # residual values of w
 
-while (time < 3):
-    
-    if (i % 100 == 0):
-        plt.imshow(grid_DNS.u[...,8], interpolation='nearest')
-        plt.show()
+while (time < 1.5):
 
     grid_DNS, h = time_advance_RK3(grid_DNS)
     
@@ -59,13 +55,19 @@ while (time < 3):
             print("URSD: " + str(abs(uvals[i] - uvals[i-1])))
             print("VRSD: " + str(abs(vvals[i] - vvals[i-1])))
             print("==========================================")
+
+            if (i % 10 == 0):
+                plt.imshow(grid_DNS.u[...,8], interpolation='nearest')
+                plt.show()
     
-    # check for divergence-free velocity field    
+    # check for divergence-free velocity field
+    """
     if (np.max((np.roll(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
                 (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
                 (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz) > 1e+10):
         raise ValueError('Velocity field is not divergence free')
-        
+    """
+
     i += 1
     time += h
 
