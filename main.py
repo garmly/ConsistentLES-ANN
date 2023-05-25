@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 Lx = 1
 Ly = 1
 Lz = 1
-Nx = 32
-Ny = 32
-Nz = 32
+Nx = 128
+Ny = 128
+Nz = 128
 dx = np.pi * 2 / Nx
 dy = np.pi * 2 / Ny
 dz = np.pi * 2 / Nz
@@ -56,22 +56,17 @@ while (time < 1.5):
             print("VRSD: " + str(abs(vvals[i] - vvals[i-1])))
             print("==========================================")
 
-            if (i % 10 == 0):
-                plt.imshow(grid_DNS.u[...,8], interpolation='nearest')
-                plt.show()
-    
     # check for divergence-free velocity field
-    """
-    if (np.max((np.roll(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
-                (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
-                (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz) > 1e+10):
+    div = (np.roll(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
+          (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
+          (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
+    
+    if np.max(div) > 1e10:
         raise ValueError('Velocity field is not divergence free')
-    """
+
+    if (i % 1 == 0):
+        plt.imshow(grid_DNS.u[...,int(grid_DNS.Nz/2)], interpolation='nearest')
+        plt.savefig('out/images/grid' + str(i) + '.png')
 
     i += 1
     time += h
-
-plt.plot(tvals,uvals)
-plt.plot(tvals,vvals)
-plt.plot(tvals,wvals)
-plt.show()

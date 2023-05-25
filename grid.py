@@ -45,7 +45,7 @@ class grid:
                           2*(np.cos(2*np.pi*(-self.Nx+i)/self.Nx)-1)/self.dx**2
 
         for j in range(self.Ny):
-            self.kyy[j] = 2*(np.cos(2*np.pi*j/self.Ny)-1)/self.dy**2 if i < self.Ny / 2 else \
+            self.kyy[j] = 2*(np.cos(2*np.pi*j/self.Ny)-1)/self.dy**2 if j < self.Ny / 2 else \
                           2*(np.cos(2*np.pi*(-self.Ny+j)/self.Ny)-1)/self.dy**2
 
         for k in range(self.Nz):
