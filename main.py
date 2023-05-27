@@ -3,6 +3,7 @@ from time_advance_RK3 import *
 import matplotlib.pyplot as plt
 import csv
 import os
+import glob
 
 # TODO: Replace with user input
 WRITE_INTERVAL = 1
@@ -68,27 +69,28 @@ while (time < 3):
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % WRITE_INTERVAL == 0):
+        os.makedirs('./out/' + str(i))
+
         plt.imshow(grid_DNS.u[...,int(grid_DNS.Nz/2)], interpolation='nearest')
         plt.colorbar()
         plt.savefig('out/images/grid' + str(i) + '.png')
         plt.clf()
 
-        os.makedirs('./out/' + str(i))
-
+        # Write csv output
         with open('./out/' + str(i) + '/u.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             for index, value in np.ndenumerate(grid_DNS.u):
-                writer.writerow([index, value])
+                writer.writerow([index[0], index[1], index[2], value])
 
         with open('./out/' + str(i) + '/v.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             for index, value in np.ndenumerate(grid_DNS.v):
-                writer.writerow([index, value])
+                writer.writerow([index[0], index[1], index[2], value])
 
         with open('./out/' + str(i) + '/w.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             for index, value in np.ndenumerate(grid_DNS.w):
-                writer.writerow([index, value])
+                writer.writerow([index[0], index[1], index[2], value])
 
     i += 1
     time += h
