@@ -24,7 +24,7 @@ verbose = True
 
 # initializing grid
 grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
-grid_DNS.vortex(-5,2,2.5,2,2.5,2)
+grid_DNS.vortex(-4,1,2,1,2,1)
 grid_DNS.define_wavenumber()
 
 i = 0                   # iteration
@@ -69,28 +69,23 @@ while (time < 3):
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % WRITE_INTERVAL == 0):
-        os.makedirs('./out/' + str(i))
-
         plt.imshow(grid_DNS.u[...,int(grid_DNS.Nz/2)], interpolation='nearest')
         plt.colorbar()
         plt.savefig('out/images/grid' + str(i) + '.png')
         plt.clf()
 
         # Write csv output
-        with open('./out/' + str(i) + '/u.csv', 'w', newline='') as csvfile:
+        row = np.array([])
+        with open('./out/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            for index, value in np.ndenumerate(grid_DNS.u):
-                writer.writerow([index[0], index[1], index[2], value])
-
-        with open('./out/' + str(i) + '/v.csv', 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            for index, value in np.ndenumerate(grid_DNS.v):
-                writer.writerow([index[0], index[1], index[2], value])
-
-        with open('./out/' + str(i) + '/w.csv', 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            for index, value in np.ndenumerate(grid_DNS.w):
-                writer.writerow([index[0], index[1], index[2], value])
-
+            writer.writerow(["x","y","z","u","v","w","p"])
+            data = np.column_stack((grid_DNS.x.flatten(),
+                                    grid_DNS.y.flatten(),
+                                    grid_DNS.z.flatten(),
+                                    grid_DNS.u.flatten(),
+                                    grid_DNS.v.flatten(),
+                                    grid_DNS.w.flatten(),
+                                    grid_DNS.p.flatten()))
+            writer.writerows(data)
     i += 1
     time += h
