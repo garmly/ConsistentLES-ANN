@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 Lx = 1
 Ly = 1
 Lz = 1
-Nx = 128
-Ny = 128
-Nz = 128
+Nx = 32
+Ny = 32
+Nz = 32
 dx = np.pi * 2 / Nx
 dy = np.pi * 2 / Ny
 dz = np.pi * 2 / Nz
@@ -61,12 +61,14 @@ while (time < 1.5):
           (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
           (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
     
-    if np.max(div) > 1e10:
-        raise ValueError('Velocity field is not divergence free')
-
+    if np.max(div) > 1e+10:
+        raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
+    
     if (i % 1 == 0):
-        plt.imshow(grid_DNS.u[...,int(grid_DNS.Nz/2)], interpolation='nearest')
+        plt.imshow(div[...,int(grid_DNS.Nz/2)], interpolation='nearest')
+        plt.colorbar()
         plt.savefig('out/images/grid' + str(i) + '.png')
+        plt.clf()
 
     i += 1
     time += h

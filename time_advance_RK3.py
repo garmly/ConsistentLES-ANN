@@ -39,4 +39,6 @@ def time_advance_RK3(grid):
     grid.v = v0 + h * np.sum(Fv * b, axis=-1)
     grid.w = w0 + h * np.sum(Fw * b, axis=-1)
 
+    grid.u, grid.v, grid.w = compute_projection_step(grid,True)
+
     return grid, h
