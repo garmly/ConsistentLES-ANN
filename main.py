@@ -1,14 +1,17 @@
 from grid import *
 from time_advance_RK3 import *
 import matplotlib.pyplot as plt
+import csv
+import os
 
 # TODO: Replace with user input
+WRITE_INTERVAL = 1
 Lx = 1
 Ly = 1
 Lz = 1
-Nx = 32
-Ny = 32
-Nz = 32
+Nx = 64
+Ny = 64
+Nz = 64
 dx = np.pi * 2 / Nx
 dy = np.pi * 2 / Ny
 dz = np.pi * 2 / Nz
@@ -32,7 +35,7 @@ rsdlsu = np.array([0])  # residual values of u
 rsdlsv = np.array([0])  # residual values of v
 rsdlsv = np.array([0])  # residual values of w
 
-while (time < 1.5):
+while (time < 3):
 
     grid_DNS, h = time_advance_RK3(grid_DNS)
     
@@ -61,14 +64,31 @@ while (time < 1.5):
           (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
           (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
     
-    if np.max(div) > 1e+10:
+    if np.max(np.abs(div)) > 1e-13:
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
-    if (i % 1 == 0):
-        plt.imshow(div[...,int(grid_DNS.Nz/2)], interpolation='nearest')
+    if (i % WRITE_INTERVAL == 0):
+        plt.imshow(grid_DNS.u[...,int(grid_DNS.Nz/2)], interpolation='nearest')
         plt.colorbar()
         plt.savefig('out/images/grid' + str(i) + '.png')
         plt.clf()
+
+        os.makedirs('./out/' + str(i))
+
+        with open('./out/' + str(i) + '/u.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            for index, value in np.ndenumerate(grid_DNS.u):
+                writer.writerow([index, value])
+
+        with open('./out/' + str(i) + '/v.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            for index, value in np.ndenumerate(grid_DNS.v):
+                writer.writerow([index, value])
+
+        with open('./out/' + str(i) + '/w.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            for index, value in np.ndenumerate(grid_DNS.w):
+                writer.writerow([index, value])
 
     i += 1
     time += h
