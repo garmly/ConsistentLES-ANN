@@ -1,5 +1,6 @@
-from grid import *
-from time_advance_RK3 import *
+from src.grid import *
+from src.time_advance_RK3 import *
+from src.interface import *
 import matplotlib.pyplot as plt
 import csv
 import os
@@ -13,14 +14,15 @@ Lz = 1
 Nx = 64
 Ny = 64
 Nz = 64
-dx = np.pi * 2 / Nx
-dy = np.pi * 2 / Ny
-dz = np.pi * 2 / Nz
+dx = Lx * np.pi * 2 / Nx
+dy = Ly * np.pi * 2 / Ny
+dz = Lz * np.pi * 2 / Nz
 time = 0
 U0 = 1
 nu = 1e-3
 Re = U0 * Lx / nu
 verbose = True
+sample_index = [[int(Nx/2)],[int(Ny/2)],[int(Nz/2)]]
 
 # initializing grid
 grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
@@ -42,9 +44,9 @@ while (time < 3):
     
     if (verbose):
         # get the point located at the middle of the grid
-        uvals = np.append(uvals,grid_DNS.u[int(Nx/2)][int(Ny/2)][int(Nz/2)])
-        vvals = np.append(vvals,grid_DNS.v[int(Nx/2)][int(Ny/2)][int(Nz/2)])
-        wvals = np.append(wvals,grid_DNS.w[int(Nx/2)][int(Ny/2)][int(Nz/2)])
+        uvals = np.append(uvals,grid_DNS.u[sample_index])
+        vvals = np.append(vvals,grid_DNS.v[sample_index])
+        wvals = np.append(wvals,grid_DNS.w[sample_index])
         tvals = np.append(tvals,time)
 
         if (i > 1):

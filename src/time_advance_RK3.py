@@ -1,7 +1,7 @@
 import numpy as np
-from grid import *
-from compute_RHS import *
-from compute_projection_step import *
+from src.grid import *
+from src.compute_RHS import *
+from src.compute_projection_step import *
 
 def time_advance_RK3(grid):
     # weights, nodes, and Runge-Kutta matrix
