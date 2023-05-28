@@ -5,7 +5,7 @@ from tkinter.font import Font
 def submit_form():
     # Function to handle form submission
     # Add your logic here to process the form data
-    global Lx,Ly,Lz,Nx,Ny,Nz,U0,nu,write_interval
+    global Lx,Ly,Lz,Nx,Ny,Nz,U0,nu,write_interval, max_time
     Lx = float(entries[0].get())
     Ly = float(entries[1].get())
     Lz = float(entries[2].get())
@@ -15,6 +15,7 @@ def submit_form():
     U0 = float(entries[6].get())
     nu = float(entries[7].get())
     write_interval = float(entries[8].get())
+    max_time = float(entries[9].get())
     root.destroy()
 
 root = tk.Tk()
@@ -71,6 +72,16 @@ h2_label.pack(anchor="n",pady=10)
 frame = tk.Frame(root)
 frame.pack(pady=5)
 label = tk.Label(frame, text="Write interval", width=10, anchor="w")
+label.pack(side="left")
+entry = tk.Entry(frame, relief="groove", bd=2)
+entry.pack(side="right")
+entries.append(entry)
+
+# T_max
+# Write interval
+frame = tk.Frame(root)
+frame.pack(pady=5)
+label = tk.Label(frame, text="Max time", width=10, anchor="w")
 label.pack(side="left")
 entry = tk.Entry(frame, relief="groove", bd=2)
 entry.pack(side="right")

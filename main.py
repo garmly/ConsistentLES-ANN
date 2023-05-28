@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import threading
 import csv
 import os
 import glob
@@ -30,7 +31,7 @@ rsdlsu = np.array([0])  # residual values of u
 rsdlsv = np.array([0])  # residual values of v
 rsdlsv = np.array([0])  # residual values of w
 
-while (time < 3):
+while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS)
     
     if (verbose):
@@ -62,8 +63,6 @@ while (time < 3):
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):
-        # Write csv output
-        row = np.array([])
         with open('./out/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","u","v","w","p"])
@@ -75,6 +74,6 @@ while (time < 3):
                                     grid_DNS.w.flatten(),
                                     grid_DNS.p.flatten()))
             writer.writerows(data)
-    
+
     i += 1
     time += h
