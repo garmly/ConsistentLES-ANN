@@ -1,28 +1,20 @@
-from src.grid import *
-from src.time_advance_RK3 import *
-from src.interface import *
 import matplotlib.pyplot as plt
 import csv
 import os
 import glob
 
+from src.grid import *
+from src.interface import *
+from src.time_advance_RK3 import *
+
 # TODO: Replace with user input
-WRITE_INTERVAL = 1
-Lx = 1
-Ly = 1
-Lz = 1
-Nx = 64
-Ny = 64
-Nz = 64
+time = 0
+verbose = True
+sample_index = [[int(Nx/2)],[int(Ny/2)],[int(Nz/2)]]
 dx = Lx * np.pi * 2 / Nx
 dy = Ly * np.pi * 2 / Ny
 dz = Lz * np.pi * 2 / Nz
-time = 0
-U0 = 1
-nu = 1e-3
 Re = U0 * Lx / nu
-verbose = True
-sample_index = [[int(Nx/2)],[int(Ny/2)],[int(Nz/2)]]
 
 # initializing grid
 grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
@@ -39,7 +31,6 @@ rsdlsv = np.array([0])  # residual values of v
 rsdlsv = np.array([0])  # residual values of w
 
 while (time < 3):
-
     grid_DNS, h = time_advance_RK3(grid_DNS)
     
     if (verbose):
@@ -49,7 +40,7 @@ while (time < 3):
         wvals = np.append(wvals,grid_DNS.w[sample_index])
         tvals = np.append(tvals,time)
 
-        if (i > 1):
+        if (i > 0):
             rsdlsu = np.append(rsdlsu, abs(uvals[i] - uvals[i-1]))
             rsdlsv = np.append(rsdlsv, abs(vvals[i] - vvals[i-1]))
 
@@ -70,12 +61,7 @@ while (time < 3):
     if np.max(np.abs(div)) > 1e-13:
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
-    if (i % WRITE_INTERVAL == 0):
-        plt.imshow(grid_DNS.u[...,int(grid_DNS.Nz/2)], interpolation='nearest')
-        plt.colorbar()
-        plt.savefig('out/images/grid' + str(i) + '.png')
-        plt.clf()
-
+    if (i % write_interval == 0):
         # Write csv output
         row = np.array([])
         with open('./out/t' + str(i) + '.csv', 'w', newline='') as csvfile:
@@ -89,5 +75,6 @@ while (time < 3):
                                     grid_DNS.w.flatten(),
                                     grid_DNS.p.flatten()))
             writer.writerows(data)
+    
     i += 1
     time += h
