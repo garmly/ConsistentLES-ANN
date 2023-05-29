@@ -1,19 +1,27 @@
 import csv
 from src.grid import *
+from src.filter import *
 from src.interface import *
 from src.time_advance_RK3 import *
 
-# TODO: Replace with user input
+# initializing simulation variables
 time = 0
 verbose = True
 sample_index = [[int(Nx/2)],[int(Ny/2)],[int(Nz/2)]]
 dx = Lx * np.pi * 2 / Nx
 dy = Ly * np.pi * 2 / Ny
 dz = Lz * np.pi * 2 / Nz
+
+# Defining filtered quantities
+dxf = Lx * np.pi * 2 / Nxf
+dyf = Ly * np.pi * 2 / Nyf
+dzf = Lz * np.pi * 2 / Nzf
+
 Re = U0 * Lx / nu
 
 # initializing grid
 grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
+grid_filter = grid(Nxf,Nyf,Nzf,dxf,dyf,dzf,nu)
 grid_DNS.vortex(-4,1,2,1,2,1)
 grid_DNS.define_wavenumber()
 
@@ -28,6 +36,7 @@ rsdlsv = np.array([0])  # residual values of w
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS)
+    grid_filter = filter_grid(grid_DNS, grid_filter)
     
     if (verbose):
         # get the point located at the middle of the grid
@@ -58,7 +67,7 @@ while (time < max_time):
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):
-        with open('./out/t' + "{.4f}".format(time) + '.csv', 'w', newline='') as csvfile:
+        with open('./out/unfiltered/t' + "{:.4f}".format(time) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","u","v","w","p"])
             data = np.column_stack((grid_DNS.x.flatten(),
@@ -68,6 +77,18 @@ while (time < max_time):
                                     grid_DNS.v.flatten(),
                                     grid_DNS.w.flatten(),
                                     grid_DNS.p.flatten()))
+            writer.writerows(data)
+
+        with open('./out/filtered/t' + "{:.4f}".format(time) + '.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["x","y","z","uf","vf","wf","pf"])
+            data = np.column_stack((grid_filter.x.flatten(),
+                                    grid_filter.y.flatten(),
+                                    grid_filter.z.flatten(),
+                                    grid_filter.u.flatten(),
+                                    grid_filter.v.flatten(),
+                                    grid_filter.w.flatten(),
+                                    grid_filter.p.flatten()))
             writer.writerows(data)
 
     i += 1
