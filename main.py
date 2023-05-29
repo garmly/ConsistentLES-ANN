@@ -1,9 +1,4 @@
-import matplotlib.pyplot as plt
-import threading
 import csv
-import os
-import glob
-
 from src.grid import *
 from src.interface import *
 from src.time_advance_RK3 import *
@@ -63,7 +58,7 @@ while (time < max_time):
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):
-        with open('./out/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+        with open('./out/t' + "{.4f}".format(time) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","u","v","w","p"])
             data = np.column_stack((grid_DNS.x.flatten(),
