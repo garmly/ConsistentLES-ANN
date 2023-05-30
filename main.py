@@ -36,7 +36,7 @@ rsdlsv = np.array([0])  # residual values of w
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS)
-    grid_filter = filter_grid(grid_DNS, grid_filter)
+    #grid_filter = filter_grid(grid_DNS, grid_filter)
     
     if (verbose):
         # get the point located at the middle of the grid

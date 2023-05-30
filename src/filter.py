@@ -21,7 +21,7 @@ def filter_grid(grid_DNS, grid_filtered):
     what_f = what[index] * (grid_filtered.Nx * grid_filtered.Ny * grid_filtered.Nz) / (grid_DNS.Nx * grid_DNS.Ny * grid_DNS.Nz)
     grid_filtered.w = np.fft.ifftn(what_f).real
 
-    grid_DNS.define_wavenumber()
+    grid_filtered.define_wavenumber()
 
     grid_filtered.u, grid_filtered.v, grid_filtered.w =  compute_projection_step(grid_filtered)
 
