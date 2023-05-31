@@ -67,7 +67,7 @@ while (time < max_time):
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):
-        with open('./out/unfiltered/t' + "{:.4f}".format(time) + '.csv', 'w', newline='') as csvfile:
+        with open('./out/unfiltered/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","u","v","w","p"])
             data = np.column_stack((grid_DNS.x.flatten(),
@@ -79,7 +79,7 @@ while (time < max_time):
                                     grid_DNS.p.flatten()))
             writer.writerows(data)
 
-        with open('./out/filtered/t' + "{:.4f}".format(time) + '.csv', 'w', newline='') as csvfile:
+        with open('./out/filtered/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","uf","vf","wf","pf"])
             data = np.column_stack((grid_filter.x.flatten(),
