@@ -7,7 +7,7 @@ from src.time_advance_RK3 import *
 # initializing simulation variables
 time = 0
 verbose = True
-sample_index = [[int(Nx/2)],[int(Ny/2)],[int(Nz/2)]]
+sample_index = [Nx//2,Ny//2,Nz//2]
 dx = Lx * np.pi * 2 / Nx
 dy = Ly * np.pi * 2 / Ny
 dz = Lz * np.pi * 2 / Nz
@@ -36,7 +36,7 @@ rsdlsv = np.array([0])  # residual values of w
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS)
-    #grid_filter = filter_grid(grid_DNS, grid_filter)
+    grid_filter = filter_grid(grid_DNS, grid_filter)
     
     if (verbose):
         # get the point located at the middle of the grid
