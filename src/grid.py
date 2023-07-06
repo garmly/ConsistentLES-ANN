@@ -35,10 +35,6 @@ class grid:
         self.kyy = np.ones(Ny)
         self.kzz = np.ones(Nz)
 
-    # read from file
-    def read(self,filename):
-        pass
-
     def define_wavenumber(self):
         for i in range(self.Nx):
             self.kxx[i] = 2*(np.cos(2*np.pi*i/self.Nx)-1)/self.dx**2 if i < self.Nx / 2 else \
@@ -61,3 +57,32 @@ class grid:
         self.u = A * np.cos(a*(self.x - self.dx/2)) * np.sin(b*self.y) * np.sin(c*self.z)
         self.v = B * np.sin(a*self.x) * np.cos(b*(self.y - self.dy/2)) * np.sin(c*self.z)
         self.w = C * np.sin(a*self.x) * np.sin(b*self.y) * np.cos(c*(self.z - self.dz/2))
+
+# read from file
+def read_grid(filename,nu):
+    with open(filename, 'rb') as fid:
+        Nx = np.fromfile(fid, dtype=np.int32, count=1)[0]
+        x = np.fromfile(fid, dtype=np.float64, count=Nx)
+        
+        Ny = np.fromfile(fid, dtype=np.int32, count=1)[0]
+        y = np.fromfile(fid, dtype=np.float64, count=Ny)
+        
+        Nz = np.fromfile(fid, dtype=np.int32, count=1)[0]
+        z = np.fromfile(fid, dtype=np.float64, count=Nz)
+        
+        n = np.fromfile(fid, dtype=np.int32, count=3)
+        U = np.fromfile(fid, dtype=np.float64, count=np.prod(n))
+        U = np.reshape(U, (n[0], n[1], n[2]))
+        
+        n = np.fromfile(fid, dtype=np.int32, count=3)
+        V = np.fromfile(fid, dtype=np.float64, count=np.prod(n))
+        V = np.reshape(V, (n[0], n[1], n[2]))
+        
+        n = np.fromfile(fid, dtype=np.int32, count=3)
+        W = np.fromfile(fid, dtype=np.float64, count=np.prod(n))
+        W = np.reshape(W, (n[0], n[1], n[2]))
+    
+    fgrid = grid(Nx, Ny, Nz, x[1]-x[0], y[1]-y[0], z[1]-z[0], nu)
+    fgrid.u = U
+    fgrid.v = V
+    fgrid.w = W

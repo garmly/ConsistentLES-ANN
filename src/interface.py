@@ -4,24 +4,30 @@ from tkinter.font import Font
 def submit_form():
     # Function to handle form submission
     # Add your logic here to process the form data
-    global Lx,Ly,Lz,Nx,Ny,Nz,Nxf,Nyf,Nzf,U0,nu,write_interval, max_time
-    Lx = float(entries[0].get())
-    Ly = float(entries[1].get())
-    Lz = float(entries[2].get())
-    Nx = int(entries[3].get())
-    Ny = int(entries[4].get())
-    Nz = int(entries[5].get())
+    global Lx,Ly,Lz,Nx,Ny,Nz,Nxf,Nyf,Nzf,U0,nu,write_interval,max_time,read,filename
+
+    read = bool(entries[13].get())
+    filename = entries[14].get()
+    U0 = float(entries[9].get())
+    nu = float(entries[10].get())
+    write_interval = int(entries[11].get())
+    max_time = float(entries[12].get())
     Nxf = int(entries[6].get())
     Nyf = int(entries[7].get())
     Nzf = int(entries[8].get())
-    U0 = float(entries[9].get())
-    nu = float(entries[10].get())
-    write_interval = float(entries[11].get())
-    max_time = float(entries[12].get())
+
+    if read:
+        Lx = float(entries[0].get())
+        Ly = float(entries[1].get())
+        Lz = float(entries[2].get())
+        Nx = int(entries[3].get())
+        Ny = int(entries[4].get())
+        Nz = int(entries[5].get())
+
     root.destroy()
 
 root = tk.Tk()
-root.geometry(f"250x500")
+root.geometry(f"250x600")
 root.resizable(True, True)
 root.title("PyDNS v0.0")
 
@@ -40,7 +46,7 @@ title_label.pack(pady=5)
 
 # Create a frame to hold the form
 form_frame = tk.Frame(root)
-form_frame.pack(pady=20)
+form_frame.pack(pady=10)
 
 # Create a canvas to hold the form frame and scrollbar
 canvas = tk.Canvas(form_frame, yscrollcommand=scrollbar.set)
@@ -53,17 +59,21 @@ scrollbar.config(command=canvas.yview)
 form_content_frame = tk.Frame(canvas)
 
 # Add the form content to the frame
-labels = ["Lx:", "Ly:", "Lz:", "Nx:", "Ny:", "Nz:", "Nxf:", "Nyf:", "Nzf:", "U0:", "Viscosity:", "Write interval:", "Max time:"]
+labels = ["Lx:", "Ly:", "Lz:", "Nx:", "Ny:", "Nz:", "Nxf:", "Nyf:", "Nzf:", "U0:", "Viscosity:", "Write interval:", "Max time:", "Read file:", "Filename:"]
+default_value = [1,1,1,32,32,32,16,16,16,1,1e-6,1,10,True,"HIT_256.init"]
 entries = []
 
+i=0
 for label_text in labels:
     frame = tk.Frame(form_content_frame)
     frame.pack(pady=5)
     label = tk.Label(frame, text=label_text, width=14, anchor="w")
     label.pack(side="left")
     entry = tk.Entry(frame, relief="groove", bd=2)
+    entry.insert(0, default_value[i])
     entry.pack(side="right")
     entries.append(entry)
+    i += 1
 
 # Pack the form content frame inside the canvas
 canvas.create_window((0, 0), window=form_content_frame, anchor="nw")

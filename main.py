@@ -4,6 +4,16 @@ from src.filter import *
 from src.interface import *
 from src.time_advance_RK3 import *
 
+# reading from file if read is True
+if not read:
+    grid_DNS = read_grid("in/"+filename, nu)
+    dx = grid_DNS.dx
+    dy = grid_DNS.dy
+    dz = grid_DNS.dz
+    Nx = grid_DNS.Nx
+    Ny = grid_DNS.Ny
+    Nz = grid_DNS.Nz
+
 # initializing simulation variables
 time = 0
 verbose = True
@@ -20,10 +30,24 @@ dzf = Lz * np.pi * 2 / Nzf
 Re = U0 * Lx / nu
 
 # initializing grid
-grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
 grid_filter = grid(Nxf,Nyf,Nzf,dxf,dyf,dzf,nu)
-grid_DNS.vortex(-4,1,2,1,2,1)
+
+if read:
+    grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
+    grid_DNS.vortex(-4,1,2,1,2,1)
+
 grid_DNS.define_wavenumber()
+
+print("INIT:")
+print("==========================================")
+print("Reading: " + filename if read else "N/A")
+print("Nx: " + str(Nx))
+print("Ny: " + str(Ny))
+print("Nz: " + str(Nz))
+print("Lx: " + str(Lx))
+print("Ly: " + str(Ly))
+print("Lz: " + str(Lz))
+print("==========================================")
 
 i = 0                   # iteration
 tvals = np.array([])    # time values
