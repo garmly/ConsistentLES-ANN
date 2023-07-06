@@ -2,7 +2,7 @@ import numpy as np
 
 # takes in u, v and computes the RHS of the Navier-Stokes
 def compute_RHS(grid):
-    
+        
     # Pre-computing terms
     u_roll_back = np.roll(grid.u,-1,axis=0)
     v_roll_back = np.roll(grid.v,-1,axis=1)

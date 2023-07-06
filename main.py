@@ -36,7 +36,7 @@ rsdlsv = np.array([0])  # residual values of w
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS)
-    grid_filter = filter_grid(grid_DNS, grid_filter)
+    grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     
     if (verbose):
         # get the point located at the middle of the grid
@@ -79,7 +79,7 @@ while (time < max_time):
                                     grid_DNS.p.flatten()))
             writer.writerows(data)
 
-        with open('./out/filtered/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+        with open('./out/filtered/raw/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","uf","vf","wf","pf"])
             data = np.column_stack((grid_filter.x.flatten(),
@@ -89,6 +89,23 @@ while (time < max_time):
                                     grid_filter.v.flatten(),
                                     grid_filter.w.flatten(),
                                     grid_filter.p.flatten()))
+            writer.writerows(data)
+
+        with open('./out/filtered/SGS/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["x","y","z","uu","uv","uw","vu","vv","vw","wu","wv","ww"])
+            data = np.column_stack((grid_filter.x.flatten(),
+                                    grid_filter.y.flatten(),
+                                    grid_filter.z.flatten(),
+                                    SGS.uu.flatten(),
+                                    SGS.uv.flatten(),
+                                    SGS.uw.flatten(),
+                                    SGS.vu.flatten(),
+                                    SGS.vv.flatten(),
+                                    SGS.vw.flatten(),
+                                    SGS.wu.flatten(),
+                                    SGS.wv.flatten(),
+                                    SGS.ww.flatten()))
             writer.writerows(data)
 
     i += 1
