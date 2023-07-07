@@ -6,7 +6,8 @@ def submit_form():
     # Add your logic here to process the form data
     global Lx,Ly,Lz,Nx,Ny,Nz,Nxf,Nyf,Nzf,U0,nu,write_interval,max_time,read,filename
 
-    read = bool(entries[13].get())
+    #read = entries[13].variable.get()
+    read = read.get()
     filename = entries[14].get()
     U0 = float(entries[9].get())
     nu = float(entries[10].get())
@@ -16,7 +17,7 @@ def submit_form():
     Nyf = int(entries[7].get())
     Nzf = int(entries[8].get())
 
-    if read:
+    if not read:
         Lx = float(entries[0].get())
         Ly = float(entries[1].get())
         Lz = float(entries[2].get())
@@ -57,21 +58,30 @@ scrollbar.config(command=canvas.yview)
 
 # Create a frame inside the canvas to hold the form content
 form_content_frame = tk.Frame(canvas)
+form_content_frame.pack()
 
 # Add the form content to the frame
-labels = ["Lx:", "Ly:", "Lz:", "Nx:", "Ny:", "Nz:", "Nxf:", "Nyf:", "Nzf:", "U0:", "Viscosity:", "Write interval:", "Max time:", "Read file:", "Filename:"]
-default_value = [1,1,1,32,32,32,16,16,16,1,1e-6,1,10,True,"HIT_256.init"]
+labels = ["Lx:", "Ly:", "Lz:", "Nx:", "Ny:", "Nz:", "Nxf:", "Nyf:", "Nzf:", "U0:", "Viscosity:", "Write interval:", "Max time:", "Read from file?", "Filename:"]
+default_value = [1, 1, 1, 32, 32, 32, 16, 16, 16, 1, 1e-6, 1, 10, True, "HIT_256.init"]
 entries = []
 
-i=0
+i = 0
 for label_text in labels:
     frame = tk.Frame(form_content_frame)
     frame.pack(pady=5)
+    
     label = tk.Label(frame, text=label_text, width=14, anchor="w")
     label.pack(side="left")
-    entry = tk.Entry(frame, relief="groove", bd=2)
-    entry.insert(0, default_value[i])
-    entry.pack(side="right")
+    
+    if i != 13:
+        entry = tk.Entry(frame, relief="groove", bd=2)
+        entry.insert(0, default_value[i])
+        entry.pack(side="right")
+    else:
+        read = tk.BooleanVar()
+        entry = tk.Checkbutton(frame, variable=read, onvalue=True, offvalue=False)
+        entry.pack(side="right")
+    
     entries.append(entry)
     i += 1
 

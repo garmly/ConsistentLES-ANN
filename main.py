@@ -5,22 +5,26 @@ from src.interface import *
 from src.time_advance_RK3 import *
 
 # reading from file if read is True
-if not read:
+if read:
     grid_DNS = read_grid("in/"+filename, nu)
     dx = grid_DNS.dx
     dy = grid_DNS.dy
     dz = grid_DNS.dz
+    Lx = grid_DNS.x[-1,0,0] + dx
+    Ly = grid_DNS.y[0,-1,0] + dy
+    Lz = grid_DNS.z[0,0,-1] + dz
     Nx = grid_DNS.Nx
     Ny = grid_DNS.Ny
     Nz = grid_DNS.Nz
+else:
+    dx = Lx * np.pi * 2 / Nx
+    dy = Ly * np.pi * 2 / Ny
+    dz = Lz * np.pi * 2 / Nz
 
 # initializing simulation variables
 time = 0
 verbose = True
 sample_index = [Nx//2,Ny//2,Nz//2]
-dx = Lx * np.pi * 2 / Nx
-dy = Ly * np.pi * 2 / Ny
-dz = Lz * np.pi * 2 / Nz
 
 # Defining filtered quantities
 dxf = Lx * np.pi * 2 / Nxf
@@ -32,7 +36,7 @@ Re = U0 * Lx / nu
 # initializing grid
 grid_filter = grid(Nxf,Nyf,Nzf,dxf,dyf,dzf,nu)
 
-if read:
+if not read:
     grid_DNS = grid(Nx,Ny,Nz,dx,dy,dz,nu)
     grid_DNS.vortex(-4,1,2,1,2,1)
 
@@ -40,7 +44,7 @@ grid_DNS.define_wavenumber()
 
 print("INIT:")
 print("==========================================")
-print("Reading: " + filename if read else "N/A")
+print("Reading: " + filename if read else "READING: N/A")
 print("Nx: " + str(Nx))
 print("Ny: " + str(Ny))
 print("Nz: " + str(Nz))
@@ -87,7 +91,7 @@ while (time < max_time):
           (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
           (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
     
-    if np.max(np.abs(div)) > 1e-13:
+    if np.max(np.abs(div)) > 1e-8:
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):

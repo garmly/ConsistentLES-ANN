@@ -61,28 +61,33 @@ class grid:
 # read from file
 def read_grid(filename,nu):
     with open(filename, 'rb') as fid:
-        Nx = np.fromfile(fid, dtype=np.int32, count=1)[0]
-        x = np.fromfile(fid, dtype=np.float64, count=Nx)
+        Nx = np.fromfile(fid, dtype='>i4', count=1)[0]
+        x = np.fromfile(fid, dtype='>f8', count=Nx)
         
-        Ny = np.fromfile(fid, dtype=np.int32, count=1)[0]
-        y = np.fromfile(fid, dtype=np.float64, count=Ny)
+        Ny = np.fromfile(fid, dtype='>i4', count=1)[0]
+        y = np.fromfile(fid, dtype='>f8', count=Ny)
         
-        Nz = np.fromfile(fid, dtype=np.int32, count=1)[0]
-        z = np.fromfile(fid, dtype=np.float64, count=Nz)
+        Nz = np.fromfile(fid, dtype='>i4', count=1)[0]
+        z = np.fromfile(fid, dtype='>f8', count=Nz)
         
-        n = np.fromfile(fid, dtype=np.int32, count=3)
-        U = np.fromfile(fid, dtype=np.float64, count=np.prod(n))
+        n = np.fromfile(fid, dtype='>i4', count=3)
+        U = np.fromfile(fid, dtype='>f8', count=np.prod(n))
         U = np.reshape(U, (n[0], n[1], n[2]))
         
-        n = np.fromfile(fid, dtype=np.int32, count=3)
-        V = np.fromfile(fid, dtype=np.float64, count=np.prod(n))
+        n = np.fromfile(fid, dtype='>i4', count=3)
+        V = np.fromfile(fid, dtype='>f8', count=np.prod(n))
         V = np.reshape(V, (n[0], n[1], n[2]))
         
-        n = np.fromfile(fid, dtype=np.int32, count=3)
-        W = np.fromfile(fid, dtype=np.float64, count=np.prod(n))
+        n = np.fromfile(fid, dtype='>i4', count=3)
+        W = np.fromfile(fid, dtype='>f8', count=np.prod(n))
         W = np.reshape(W, (n[0], n[1], n[2]))
     
-    fgrid = grid(Nx, Ny, Nz, x[1]-x[0], y[1]-y[0], z[1]-z[0], nu)
+    dx = x[1]-x[0]
+    dy = y[1]-y[0]
+    dz = z[1]-z[0]
+    fgrid = grid(Nx, Ny, Nz, dx, dy, dz, nu)
     fgrid.u = U
     fgrid.v = V
     fgrid.w = W
+
+    return fgrid
