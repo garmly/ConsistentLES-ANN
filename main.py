@@ -67,6 +67,8 @@ rsdlsu = np.array([0])  # residual values of u
 rsdlsv = np.array([0])  # residual values of v
 rsdlsv = np.array([0])  # residual values of w
 
+grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS)
+
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS, LES=False)
     grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
@@ -100,7 +102,7 @@ while (time < max_time):
           (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
           (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
     
-    if np.max(np.abs(div)) > 1e-10:
+    if np.max(np.abs(div)) > 1e-15:
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):

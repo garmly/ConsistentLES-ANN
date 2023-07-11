@@ -88,17 +88,17 @@ def compute_RHS(grid, LES, forcing=1, SGS=None):
 
     if LES:
           Fu -= (np.roll(SGS.uu,-1,axis=0) - SGS.uu) / grid.dx + \
-                (np.roll(SGS.uv,-1,axis=0) - SGS.uv) / grid.dy + \
-                (np.roll(SGS.uw,-1,axis=0) - SGS.uw) / grid.dz
+                (np.roll(SGS.uv,-1,axis=1) - SGS.uv) / grid.dy + \
+                (np.roll(SGS.uw,-1,axis=2) - SGS.uw) / grid.dz
           Fv -= (np.roll(SGS.vu,-1,axis=0) - SGS.vu) / grid.dx + \
-                (np.roll(SGS.vv,-1,axis=0) - SGS.vv) / grid.dy + \
-                (np.roll(SGS.vw,-1,axis=0) - SGS.vw) / grid.dz
+                (np.roll(SGS.vv,-1,axis=1) - SGS.vv) / grid.dy + \
+                (np.roll(SGS.vw,-1,axis=2) - SGS.vw) / grid.dz
           Fw -= (np.roll(SGS.wu,-1,axis=0) - SGS.wu) / grid.dx + \
-                (np.roll(SGS.wv,-1,axis=0) - SGS.wv) / grid.dy + \
-                (np.roll(SGS.ww,-1,axis=0) - SGS.ww) / grid.dz
+                (np.roll(SGS.wv,-1,axis=1) - SGS.wv) / grid.dy + \
+                (np.roll(SGS.ww,-1,axis=2) - SGS.ww) / grid.dz
 
-    Fu += grid.u + forcing
-    Fv += grid.v + forcing
-    Fw += grid.w + forcing
+    Fu += grid.u * forcing
+    Fv += grid.v * forcing
+    Fw += grid.w * forcing
 
     return Fu, Fv, Fw
