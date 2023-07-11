@@ -33,7 +33,7 @@ dzf = Lz * np.pi * 2 / Nzf
 
 Re = U0 * Lx / nu
 
-# initializing grid
+# initializing grids
 grid_filter = grid(Nxf,Nyf,Nzf,dxf,dyf,dzf,nu)
 
 if not read:
@@ -42,9 +42,12 @@ if not read:
 
 grid_DNS.define_wavenumber()
 
+# Defining LES grid
+grid_LES, SGS = filter_grid(grid_DNS, grid_filter)
+
 print("INIT:")
 print("==========================================")
-print("Reading: " + filename if read else "READING: N/A")
+print("READING: " + filename if read else "READING: N/A")
 print("Nx: " + str(Nx))
 print("Ny: " + str(Ny))
 print("Nz: " + str(Nz))
@@ -63,8 +66,9 @@ rsdlsv = np.array([0])  # residual values of v
 rsdlsv = np.array([0])  # residual values of w
 
 while (time < max_time):
-    grid_DNS, h = time_advance_RK3(grid_DNS)
+    grid_DNS, h = time_advance_RK3(grid_DNS, LES=False)
     grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
+    grid_LES, h = time_advance_RK3(grid_LES, LES=True)
     
     if (verbose):
         # get the point located at the middle of the grid
@@ -91,7 +95,7 @@ while (time < max_time):
           (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
           (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
     
-    if np.max(np.abs(div)) > 1e-8:
+    if np.max(np.abs(div)) > 1e-10:
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):
@@ -134,6 +138,30 @@ while (time < max_time):
                                     SGS.wu.flatten(),
                                     SGS.wv.flatten(),
                                     SGS.ww.flatten()))
+            writer.writerows(data)
+
+        with open('./out/filtered/LES/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["x","y","z","u_LES","v_LES","w_LES","p_LES"])
+            data = np.column_stack((grid_LES.x.flatten(),
+                                    grid_LES.y.flatten(),
+                                    grid_LES.z.flatten(),
+                                    grid_LES.u.flatten(),
+                                    grid_LES.v.flatten(),
+                                    grid_LES.w.flatten(),
+                                    grid_LES.p.flatten()))
+            writer.writerows(data)
+
+        with open('./out/filtered/delta_com/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["x","y","z","delta_u","delta_v","delta_w","delta_p"])
+            data = np.column_stack((grid_LES.x.flatten(),
+                                    grid_LES.y.flatten(),
+                                    grid_LES.z.flatten(),
+                                    grid_filter.u.flatten() - grid_LES.u.flatten(),
+                                    grid_filter.v.flatten() - grid_LES.v.flatten(),
+                                    grid_filter.w.flatten() - grid_LES.w.flatten(),
+                                    grid_filter.p.flatten() - grid_LES.p.flatten()))
             writer.writerows(data)
 
     i += 1

@@ -1,7 +1,7 @@
 import numpy as np
 
 # takes in u, v and computes the RHS of the Navier-Stokes
-def compute_RHS(grid):
+def compute_RHS(grid, forcing=1, LES=False, SGS=None):
         
     # Pre-computing terms
     u_roll_back = np.roll(grid.u,-1,axis=0)
@@ -80,11 +80,25 @@ def compute_RHS(grid):
     Fw -= (ww - np.roll(ww,1,axis=2)) / grid.dz
 
     # 1/Re * d^2(w)/d(x)^2
-    Fv += grid.nu *(np.roll(grid.w,-1,axis=0) - 2*grid.w + w_roll_u) / grid.dx**2
+    Fw += grid.nu *(np.roll(grid.w,-1,axis=0) - 2*grid.w + w_roll_u) / grid.dx**2
     # 1/Re * d^2(w)/d(y)^2
-    Fv += grid.nu *(np.roll(grid.w,-1,axis=1) - 2*grid.w + w_roll_v) / grid.dy**2
+    Fw += grid.nu *(np.roll(grid.w,-1,axis=1) - 2*grid.w + w_roll_v) / grid.dy**2
     # 1/Re * d^2(w)/d(z)^2
-    Fv += grid.nu *(w_roll_back - 2*grid.w + np.roll(grid.w,1,axis=2)) / grid.dz**2
+    Fw += grid.nu *(w_roll_back - 2*grid.w + np.roll(grid.w,1,axis=2)) / grid.dz**2
 
+    if LES:
+          Fu -= (np.roll(SGS.uu,-1,axis=0) - SGS.uu) / grid.dx + \
+                (np.roll(SGS.uv,-1,axis=0) - SGS.uv) / grid.dy + \
+                (np.roll(SGS.uw,-1,axis=0) - SGS.uw) / grid.dz
+          Fv -= (np.roll(SGS.vu,-1,axis=0) - SGS.vu) / grid.dx + \
+                (np.roll(SGS.vv,-1,axis=0) - SGS.vv) / grid.dy + \
+                (np.roll(SGS.vw,-1,axis=0) - SGS.vw) / grid.dz
+          Fw -= (np.roll(SGS.wu,-1,axis=0) - SGS.wu) / grid.dx + \
+                (np.roll(SGS.wv,-1,axis=0) - SGS.wv) / grid.dy + \
+                (np.roll(SGS.ww,-1,axis=0) - SGS.ww) / grid.dz
+
+    Fu += grid.u + forcing
+    Fv += grid.v + forcing
+    Fw += grid.w + forcing
 
     return Fu, Fv, Fw

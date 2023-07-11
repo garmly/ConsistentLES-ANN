@@ -3,7 +3,7 @@ from src.grid import *
 from src.compute_RHS import *
 from src.compute_projection_step import *
 
-def time_advance_RK3(grid):
+def time_advance_RK3(grid, LES, timeControl=None):
     # weights, nodes, and Runge-Kutta matrix
     b = np.array([1/6, 2/3, 1/6])
     c = np.array([0, 0.5, 1])
@@ -13,7 +13,10 @@ def time_advance_RK3(grid):
     C = 1.00
 
     # Maximum timestep for numerical stability (CFL condition)
-    h = abs(min(C*grid.dx/np.max(grid.u), C*grid.dy/np.max(grid.v)))
+    if not timeControl:
+        h = abs(min(C*grid.dx/np.max(grid.u), C*grid.dy/np.max(grid.v)))
+    else:
+        h = timeControl
 
     # initial conditions
     u0, v0, w0 = grid.u, grid.v, grid.w
@@ -30,7 +33,7 @@ def time_advance_RK3(grid):
 
         # remove divergence and compute RHS of Navier-Stokes
         grid.u, grid.v, grid.w = compute_projection_step(grid,True)
-        grid.Fu, grid.Fv, grid.Fw = compute_RHS(grid)
+        grid.Fu, grid.Fv, grid.Fw = compute_RHS(grid, LES)
 
         # remove divergence from Fu, Fv, Fw
         Fu[:,:,:,i], Fv[:,:,:,i], Fw[:,:,:,i] = compute_projection_step(grid,False)
