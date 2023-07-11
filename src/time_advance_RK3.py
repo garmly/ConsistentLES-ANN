@@ -3,7 +3,7 @@ from src.grid import *
 from src.compute_RHS import *
 from src.compute_projection_step import *
 
-def time_advance_RK3(grid, LES, timeControl=None):
+def time_advance_RK3(grid, LES, timeControl=None, SGS_tensor=None):
     # weights, nodes, and Runge-Kutta matrix
     b = np.array([1/6, 2/3, 1/6])
     c = np.array([0, 0.5, 1])
@@ -33,7 +33,7 @@ def time_advance_RK3(grid, LES, timeControl=None):
 
         # remove divergence and compute RHS of Navier-Stokes
         grid.u, grid.v, grid.w = compute_projection_step(grid,True)
-        grid.Fu, grid.Fv, grid.Fw = compute_RHS(grid, LES)
+        grid.Fu, grid.Fv, grid.Fw = compute_RHS(grid, LES, SGS=SGS_tensor)
 
         # remove divergence from Fu, Fv, Fw
         Fu[:,:,:,i], Fv[:,:,:,i], Fw[:,:,:,i] = compute_projection_step(grid,False)
