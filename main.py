@@ -2,8 +2,11 @@ import csv
 import copy as cp
 from src.grid import *
 from src.filter import *
+from src.roll_view import *
 from src.interface import *
 from src.time_advance_RK3 import *
+
+print("INITIALIZING...")
 
 # reading from file if read is True
 if read:
@@ -11,9 +14,9 @@ if read:
     dx = grid_DNS.dx
     dy = grid_DNS.dy
     dz = grid_DNS.dz
-    Lx = grid_DNS.x[-1,0,0] + dx
-    Ly = grid_DNS.y[0,-1,0] + dy
-    Lz = grid_DNS.z[0,0,-1] + dz
+    Lx = (grid_DNS.x[-1,0,0] + dx) / (2 * np.pi)
+    Ly = (grid_DNS.y[0,-1,0] + dy) / (2 * np.pi)
+    Lz = (grid_DNS.z[0,0,-1] + dz) / (2 * np.pi)
     Nx = grid_DNS.Nx
     Ny = grid_DNS.Ny
     Nz = grid_DNS.Nz
@@ -47,7 +50,6 @@ grid_DNS.define_wavenumber()
 grid_LES_corrected, SGS = filter_grid(grid_DNS, grid_filter)
 grid_LES_uncorrected = cp.deepcopy(grid_LES_corrected)
 
-print("INIT:")
 print("==========================================")
 print("READING: " + filename if read else "READING: N/A")
 print("Nx: " + str(Nx))
@@ -65,7 +67,7 @@ vvals = np.array([])    # v values
 wvals = np.array([])    # w values
 rsdlsu = np.array([0])  # residual values of u
 rsdlsv = np.array([0])  # residual values of v
-rsdlsv = np.array([0])  # residual values of w
+rsdlsw = np.array([0])  # residual values of w
 
 grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS)
 
@@ -85,6 +87,7 @@ while (time < max_time):
         if (i > 0):
             rsdlsu = np.append(rsdlsu, abs(uvals[i] - uvals[i-1]))
             rsdlsv = np.append(rsdlsv, abs(vvals[i] - vvals[i-1]))
+            rsdlsw = np.append(rsdlsw, abs(vvals[i] - vvals[i-1]))
 
             print("TIME: " + str(time))
             print("==========================================")
@@ -98,9 +101,9 @@ while (time < max_time):
             print("==========================================")
 
     # check for divergence-free velocity field
-    div = (np.roll(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
-          (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
-          (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
+    div = (roll_view(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
+          (roll_view(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
+          (roll_view(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
     
     if np.max(np.abs(div)) > 1e-10:
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))

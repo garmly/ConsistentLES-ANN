@@ -28,7 +28,7 @@ def submit_form():
     root.destroy()
 
 root = tk.Tk()
-root.geometry(f"250x600")
+root.geometry(f"250x500")
 root.resizable(True, True)
 root.title("PyDNS v0.0")
 
@@ -44,21 +44,20 @@ heading_font = Font(family="Helvetica", size=12)
 title_label = tk.Label(root, text="pyDNS", font=title_font)
 title_label.pack(pady=5)
 
-
 # Create a frame to hold the form
 form_frame = tk.Frame(root)
 form_frame.pack(pady=10)
 
 # Create a canvas to hold the form frame and scrollbar
 canvas = tk.Canvas(form_frame, yscrollcommand=scrollbar.set)
-canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+canvas.pack(side=tk.LEFT, fill="both", expand=True)
 
 # Configure the scrollbar to work with the canvas
 scrollbar.config(command=canvas.yview)
 
 # Create a frame inside the canvas to hold the form content
 form_content_frame = tk.Frame(canvas)
-form_content_frame.pack()
+form_content_frame.pack(fill="both", expand=True)
 
 # Add the form content to the frame
 labels = ["Lx:", "Ly:", "Lz:", "Nx:", "Ny:", "Nz:", "Nxf:", "Nyf:", "Nzf:", "U0:", "Viscosity:", "Write interval:", "Max time:", "Read from file?", "Filename:"]
