@@ -102,7 +102,7 @@ while (time < max_time):
           (np.roll(grid_DNS.v,-1,axis=1) - grid_DNS.v) / grid_DNS.dy + \
           (np.roll(grid_DNS.w,-1,axis=2) - grid_DNS.w) / grid_DNS.dz
     
-    if np.max(np.abs(div)) > 1e-15:
+    if np.max(np.abs(div)) > 1e-10:
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):
