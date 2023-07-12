@@ -2,6 +2,7 @@ import numpy as np
 from src.grid import *
 from src.compute_RHS import *
 from src.compute_projection_step import *
+from src.roll_view import *
 
 def filter_grid(grid_DNS, grid_filtered):
     vx = np.expand_dims(np.append(range(0,grid_filtered.Nx//2), range(grid_DNS.Nx - grid_filtered.Nx//2, grid_DNS.Nx)),axis=(1,2))
@@ -25,15 +26,15 @@ def filter_grid(grid_DNS, grid_filtered):
     grid_filtered.u, grid_filtered.v, grid_filtered.w = compute_projection_step(grid_filtered)
 
     # Pre-computing terms
-    u_roll_back = np.roll(grid_DNS.u,-1,axis=0)
-    v_roll_back = np.roll(grid_DNS.v,-1,axis=1)
-    w_roll_back = np.roll(grid_DNS.w,-1,axis=2)
-    u_roll_v = np.roll(grid_DNS.u,1,axis=1)
-    u_roll_w = np.roll(grid_DNS.u,1,axis=2)
-    v_roll_u = np.roll(grid_DNS.v,1,axis=0)
-    v_roll_w = np.roll(grid_DNS.v,1,axis=2)
-    w_roll_u = np.roll(grid_DNS.w,1,axis=0)
-    w_roll_v = np.roll(grid_DNS.w,1,axis=1)
+    u_roll_back = roll_view(grid_DNS.u,-1,axis=0)
+    v_roll_back = roll_view(grid_DNS.v,-1,axis=1)
+    w_roll_back = roll_view(grid_DNS.w,-1,axis=2)
+    u_roll_v = roll_view(grid_DNS.u,1,axis=1)
+    u_roll_w = roll_view(grid_DNS.u,1,axis=2)
+    v_roll_u = roll_view(grid_DNS.v,1,axis=0)
+    v_roll_w = roll_view(grid_DNS.v,1,axis=2)
+    w_roll_u = roll_view(grid_DNS.w,1,axis=0)
+    w_roll_v = roll_view(grid_DNS.w,1,axis=1)
 
     # Calculating remaining filtered SGS terms
     uu = (0.5*(grid_DNS.u + u_roll_back))**2
@@ -57,15 +58,15 @@ def filter_grid(grid_DNS, grid_filtered):
     ww_f = filter(ww)
 
     # Resolving SGS stress tensor
-    u_roll_back_f = np.roll(grid_filtered.u,-1,axis=0)
-    v_roll_back_f = np.roll(grid_filtered.v,-1,axis=1)
-    w_roll_back_f = np.roll(grid_filtered.w,-1,axis=2)
-    u_roll_v_f = np.roll(grid_filtered.u,1,axis=1)
-    u_roll_w_f = np.roll(grid_filtered.u,1,axis=2)
-    v_roll_u_f = np.roll(grid_filtered.v,1,axis=0)
-    v_roll_w_f = np.roll(grid_filtered.v,1,axis=2)
-    w_roll_u_f = np.roll(grid_filtered.w,1,axis=0)
-    w_roll_v_f = np.roll(grid_filtered.w,1,axis=1)
+    u_roll_back_f = roll_view(grid_filtered.u,-1,axis=0)
+    v_roll_back_f = roll_view(grid_filtered.v,-1,axis=1)
+    w_roll_back_f = roll_view(grid_filtered.w,-1,axis=2)
+    u_roll_v_f = roll_view(grid_filtered.u,1,axis=1)
+    u_roll_w_f = roll_view(grid_filtered.u,1,axis=2)
+    v_roll_u_f = roll_view(grid_filtered.v,1,axis=0)
+    v_roll_w_f = roll_view(grid_filtered.v,1,axis=2)
+    w_roll_u_f = roll_view(grid_filtered.w,1,axis=0)
+    w_roll_v_f = roll_view(grid_filtered.w,1,axis=1)
 
     SGS_uu = uu_f - (0.5*(grid_filtered.u + u_roll_back_f))**2
     SGS_uv = uv_f - 0.5*(grid_filtered.u + u_roll_v_f) * 0.5*(grid_filtered.v + v_roll_u_f)
