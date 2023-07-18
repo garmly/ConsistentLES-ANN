@@ -58,7 +58,7 @@ print("Ly: " + str(Ly))
 print("Lz: " + str(Lz))
 print("==========================================")
 
-i = 0                   # iteration
+i = 1                   # iteration
 tvals = np.array([])    # time values
 uvals = np.array([])    # u values
 vvals = np.array([])    # v values
@@ -68,12 +68,15 @@ rsdlsv = np.array([0])  # residual values of v
 rsdlsv = np.array([0])  # residual values of w
 
 grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS)
+grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS, LES=False)
-    grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=False, timeControl=h)
     grid_LES_corrected, h = time_advance_RK3(grid_LES_corrected, LES=True, timeControl=h, SGS_tensor=SGS)
+    grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
+    print(hex(id(grid_filter)))
+    print(hex(id(grid_LES_corrected)))
     
     if (verbose):
         # get the point located at the middle of the grid

@@ -1,3 +1,4 @@
+import copy as cp
 import numpy as np
 from src.grid import *
 from src.compute_RHS import *
@@ -80,7 +81,7 @@ def filter_grid(grid_DNS, grid_filtered):
 
     SGS = SGS_tensor(SGS_uu,SGS_uv,SGS_uw,SGS_vu,SGS_vv,SGS_vw,SGS_wu,SGS_wv,SGS_ww)
 
-    return grid_filtered, SGS
+    return cp.deepcopy(grid_filtered), SGS
 
 class SGS_tensor:
     
