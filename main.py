@@ -74,11 +74,21 @@ grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS, LES=False)
-    grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=False, timeControl=h)
+    grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=True, timeControl=h, SGS_tensor=SGS)
+
+    delta_u = grid_filter.u - grid_LES_corrected.u
+    delta_v = grid_filter.v - grid_LES_corrected.v
+    delta_w = grid_filter.w - grid_LES_corrected.w
+    delta_p = grid_filter.p - grid_LES_corrected.p
+
     grid_LES_corrected, h = time_advance_RK3(grid_LES_corrected, LES=True, timeControl=h, SGS_tensor=SGS)
+    
+    grid_LES_corrected.u += delta_u
+    grid_LES_corrected.v += delta_v
+    grid_LES_corrected.w += delta_w
+    grid_LES_corrected.p += delta_p
+
     grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
-    print(hex(id(grid_filter)))
-    print(hex(id(grid_LES_corrected)))
     
     if (verbose):
         # get the point located at the middle of the grid
@@ -87,21 +97,20 @@ while (time < max_time):
         wvals = np.append(wvals,grid_DNS.w[sample_index])
         tvals = np.append(tvals,time)
 
-        if (i > 0):
-            rsdlsu = np.append(rsdlsu, abs(uvals[i] - uvals[i-1]))
-            rsdlsv = np.append(rsdlsv, abs(vvals[i] - vvals[i-1]))
-            rsdlsw = np.append(rsdlsw, abs(vvals[i] - vvals[i-1]))
+        rsdlsu = np.append(rsdlsu, abs(uvals[i] - uvals[i-1]))
+        rsdlsv = np.append(rsdlsv, abs(vvals[i] - vvals[i-1]))
+        rsdlsw = np.append(rsdlsw, abs(vvals[i] - vvals[i-1]))
 
-            print("TIME: " + str(time))
-            print("==========================================")
-            print("dT: " + str(h))
-            print("UVAL: " + str(uvals[i]))
-            print("VVAL: " + str(vvals[i]))
-            print("WVAL: " + str(vvals[i]))
-            print("URSD: " + str(abs(uvals[i] - uvals[i-1])))
-            print("VRSD: " + str(abs(vvals[i] - vvals[i-1])))
-            print("WRSD: " + str(abs(wvals[i] - wvals[i-1])))
-            print("==========================================")
+        print("TIME: " + str(time))
+        print("==========================================")
+        print("dT: " + str(h))
+        print("UVAL: " + str(uvals[i]))
+        print("VVAL: " + str(vvals[i]))
+        print("WVAL: " + str(vvals[i]))
+        print("URSD: " + str(abs(uvals[i] - uvals[i-1])))
+        print("VRSD: " + str(abs(vvals[i] - vvals[i-1])))
+        print("WRSD: " + str(abs(wvals[i] - wvals[i-1])))
+        print("==========================================")
 
     # check for divergence-free velocity field
     div = (roll_view(grid_DNS.u,-1,axis=0) - grid_DNS.u) / grid_DNS.dx + \
@@ -183,10 +192,10 @@ while (time < max_time):
             data = np.column_stack((grid_LES_corrected.x.flatten(),
                                     grid_LES_corrected.y.flatten(),
                                     grid_LES_corrected.z.flatten(),
-                                    grid_filter.u.flatten() - grid_LES_corrected.u.flatten(),
-                                    grid_filter.v.flatten() - grid_LES_corrected.v.flatten(),
-                                    grid_filter.w.flatten() - grid_LES_corrected.w.flatten(),
-                                    grid_filter.p.flatten() - grid_LES_corrected.p.flatten()))
+                                    delta_u.flatten(),
+                                    delta_v.flatten(),
+                                    delta_w.flatten(),
+                                    delta_p.flatten()))
             writer.writerows(data)
 
         with open('./out/filtered/delta/uncorrected/t' + str(i) + '.csv', 'w', newline='') as csvfile:
