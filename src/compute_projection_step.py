@@ -19,10 +19,11 @@ def compute_projection_step(grid, principal=True): # if True, use u,v,w - if Fal
     
     phat = fftw.fftn(grid.p)
 
-    for index, value in np.ndenumerate(grid.p):
-        kk = grid.kxx[index[0]] + grid.kyy[index[1]] + grid.kzz[index[2]]
-        if (not np.array_equal(index, [0,0,0])):
-            phat[index] /= kk
+    kk = grid.kxx[:, np.newaxis, np.newaxis] + \
+         grid.kyy[np.newaxis, :, np.newaxis] + \
+         grid.kzz[np.newaxis, np.newaxis, :]
+    kk[0,0,0] = 1
+    phat /= kk
     
     grid.p = fftw.ifftn(phat).real
 

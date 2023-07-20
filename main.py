@@ -1,10 +1,14 @@
 import csv
 import copy as cp
+import os
 from src.grid import *
 from src.filter import *
 from src.roll_view import *
 from src.interface import *
 from src.time_advance_RK3 import *
+
+# For parallelization
+os.system("taskset -p 0xff %d" % os.getpid())
 
 print("INITIALIZING...")
 
@@ -60,33 +64,32 @@ print("Ly: " + str(Ly))
 print("Lz: " + str(Lz))
 print("==========================================")
 
-i = 1                   # iteration
-tvals = np.array([])    # time values
-uvals = np.array([])    # u values
-vvals = np.array([])    # v values
-wvals = np.array([])    # w values
-rsdlsu = np.array([0])  # residual values of u
-rsdlsv = np.array([0])  # residual values of v
-rsdlsw = np.array([0])  # residual values of w
-
 grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS)
 grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
+
+i = 1                                          # iteration
+tvals = np.array([])                           # time values
+uvals = np.array([])                           # u values
+vvals = np.array([])                           # v values
+wvals = np.array([])                           # w values
+rsdlsu = np.array([grid_DNS.u[sample_index]])  # residual values of u
+rsdlsv = np.array([grid_DNS.v[sample_index]])  # residual values of v
+rsdlsw = np.array([grid_DNS.w[sample_index]])  # residual values of w
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS, LES=False)
     grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=True, timeControl=h, SGS_tensor=SGS)
 
-    delta_u = grid_filter.u - grid_LES_corrected.u
-    delta_v = grid_filter.v - grid_LES_corrected.v
-    delta_w = grid_filter.w - grid_LES_corrected.w
-    delta_p = grid_filter.p - grid_LES_corrected.p
+    delta_u = grid_filter.Fu - grid_LES_corrected.Fu
+    delta_v = grid_filter.Fv - grid_LES_corrected.Fv
+    delta_w = grid_filter.Fw - grid_LES_corrected.Fw
 
     grid_LES_corrected, h = time_advance_RK3(grid_LES_corrected, LES=True, timeControl=h, SGS_tensor=SGS)
     
-    grid_LES_corrected.u += delta_u
-    grid_LES_corrected.v += delta_v
-    grid_LES_corrected.w += delta_w
-    grid_LES_corrected.p += delta_p
+    grid_LES_corrected.u += grid_filter.u - grid_LES_corrected.v
+    grid_LES_corrected.v += grid_filter.u - grid_LES_corrected.v
+    grid_LES_corrected.w += grid_filter.u - grid_LES_corrected.v
+    grid_LES_corrected.p += grid_filter.u - grid_LES_corrected.v
 
     grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     
@@ -186,7 +189,7 @@ while (time < max_time):
                                     grid_LES_uncorrected.p.flatten()))
             writer.writerows(data)
 
-        with open('./out/filtered/delta/corrected/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+        with open('./out/filtered/delta/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","delta_u","delta_v","delta_w","delta_p"])
             data = np.column_stack((grid_LES_corrected.x.flatten(),
@@ -194,20 +197,30 @@ while (time < max_time):
                                     grid_LES_corrected.z.flatten(),
                                     delta_u.flatten(),
                                     delta_v.flatten(),
-                                    delta_w.flatten(),
-                                    delta_p.flatten()))
+                                    delta_w.flatten()))
             writer.writerows(data)
 
-        with open('./out/filtered/delta/uncorrected/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+
+        with open('./out/filtered/L2/corrected/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","delta_u","delta_v","delta_w","delta_p"])
-            data = np.column_stack((grid_LES_uncorrected.x.flatten(),
-                                    grid_LES_uncorrected.y.flatten(),
+            data = np.column_stack((grid_LES_corrected.x.flatten(),
+                                    grid_LES_corrected.y.flatten(),
                                     grid_LES_corrected.z.flatten(),
-                                    grid_filter.u.flatten() - grid_LES_uncorrected.u.flatten(),
-                                    grid_filter.v.flatten() - grid_LES_uncorrected.v.flatten(),
-                                    grid_filter.w.flatten() - grid_LES_uncorrected.w.flatten(),
-                                    grid_filter.p.flatten() - grid_LES_uncorrected.p.flatten()))
+                                    np.linalg.norm([grid_LES_corrected.u - grid_filter.u,
+                                                    grid_LES_corrected.v - grid_filter.v,
+                                                    grid_LES_corrected.w - grid_filter.w]).flatten()))
+            writer.writerows(data)
+
+        with open('./out/filtered/L2/uncorrected/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["x","y","z","delta_u","delta_v","delta_w","delta_p"])
+            data = np.column_stack((grid_LES_corrected.x.flatten(),
+                                    grid_LES_corrected.y.flatten(),
+                                    grid_LES_corrected.z.flatten(),
+                                    np.linalg.norm([grid_LES_uncorrected.u - grid_filter.u,
+                                                    grid_LES_uncorrected.v - grid_filter.v,
+                                                    grid_LES_uncorrected.w - grid_filter.w]).flatten()))
             writer.writerows(data)
 
     i += 1
