@@ -22,6 +22,11 @@ def filter_grid(grid_DNS, grid_filtered):
     grid_filtered.v = filter(grid_DNS.v)
     grid_filtered.w = filter(grid_DNS.w)
 
+    # Calculating filtered Fu,Fv,Fw
+    grid_filtered.Fu = filter(grid_DNS.Fu)
+    grid_filtered.Fv = filter(grid_DNS.Fv)
+    grid_filtered.Fw = filter(grid_DNS.Fw)
+
     # Removing divergence from velocity field
     grid_filtered.define_wavenumber()
     grid_filtered.u, grid_filtered.v, grid_filtered.w = compute_projection_step(grid_filtered)
