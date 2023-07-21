@@ -2,7 +2,7 @@ import numpy as np
 from src.roll_view import *
 
 # takes in u, v and computes the RHS of the Navier-Stokes
-def compute_RHS(grid, LES, forcing=1, SGS=None):
+def compute_RHS(grid, LES, forcing=1, SGS=None, delta_u=0, delta_v = 0, delta_w = 0):
         
     # Pre-computing terms
     u_roll_back = roll_view(grid.u,-1,axis=0)
@@ -102,4 +102,8 @@ def compute_RHS(grid, LES, forcing=1, SGS=None):
     Fv += grid.v * forcing
     Fw += grid.w * forcing
 
+    Fu += delta_u
+    Fv += delta_v
+    Fw += delta_w
+    
     return Fu, Fv, Fw
