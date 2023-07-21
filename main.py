@@ -53,6 +53,7 @@ grid_DNS.define_wavenumber()
 # Defining LES grid
 grid_LES_corrected, SGS = filter_grid(grid_DNS, grid_filter)
 grid_LES_uncorrected = cp.deepcopy(grid_LES_corrected)
+grid_filter = cp.deepcopy(grid_LES_corrected)
 
 print("==========================================")
 print("READING: " + filename if read else "READING: N/A")
@@ -65,7 +66,6 @@ print("Lz: " + str(Lz))
 print("==========================================")
 
 grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS)
-grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
 
 i = 1                                          # iteration
 tvals = np.array([])                           # time values
@@ -78,15 +78,16 @@ rsdlsw = np.array([grid_DNS.w[sample_index]])  # residual values of w
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS, LES=False)
+    original_filter = cp.deepcopy(grid_filter)
+    grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=True, timeControl=h, SGS_tensor=SGS)
-    grid_filter_inter, h = time_advance_RK3(grid_filter, LES=True, timeControl=h, SGS_tensor=SGS)
+    grid_LES_expected, h = time_advance_RK3(original_filter, LES=True, timeControl=h, SGS_tensor=SGS)
 
-    delta_u = grid_filter_inter.Fu - grid_LES_corrected.Fu
-    delta_v = grid_filter_inter.Fv - grid_LES_corrected.Fv
-    delta_w = grid_filter_inter.Fw - grid_LES_corrected.Fw
+    delta_u = (grid_filter.u - grid_LES_expected.u) / h
+    delta_v = (grid_filter.v - grid_LES_expected.v) / h
+    delta_w = (grid_filter.w - grid_LES_expected.w) / h
 
     grid_LES_corrected, h = time_advance_RK3(grid_LES_corrected, LES=True, timeControl=h, SGS_tensor=SGS, delta_u=delta_u, delta_v=delta_v, delta_w=delta_w)
-    grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     
     if (verbose):
         # get the point located at the middle of the grid
