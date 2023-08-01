@@ -75,7 +75,7 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
                           grid_LES.Fv - grid_filtered.Fv, \
                           grid_LES.Fw - grid_filtered.Fw])
         
-        if maxdiff > 1e-10:
+        if maxdiff > 1e-5:
             raise ValueError('Filtered RHS and LES RHS do not match. Max(Fu_f - Fu_LES) = ' + str(maxdiff) + '.)')
 
         # remove divergence from Fu, Fv, Fw

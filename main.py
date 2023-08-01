@@ -6,6 +6,7 @@ from src.filter import *
 from src.roll_view import *
 from src.interface import *
 from src.time_advance_RK3 import *
+from src.compute_RS import *
 from src.time_advance_RK3_delta import *
 
 # For parallelization
@@ -80,6 +81,7 @@ while (time < max_time):
     grid_LES_corrected, h, delta = time_advance_RK3_delta(grid_LES_corrected, grid_DNS)
     grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=True, timeControl=h, SGS_tensor=SGS)
+    R, S = compute_RS(grid_filter)
     
     if (verbose):
         # get the point located at the middle of the grid
@@ -136,7 +138,7 @@ while (time < max_time):
                                     grid_filter.p.flatten()))
             writer.writerows(data)
 
-        with open('./out/filtered/SGS/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+        with open('./out/filtered/SGS/Tau/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(["x","y","z","uu","uv","uw","vu","vv","vw","wu","wv","ww"])
             data = np.column_stack((grid_filter.x.flatten(),
@@ -151,6 +153,40 @@ while (time < max_time):
                                     SGS.wu.flatten(),
                                     SGS.wv.flatten(),
                                     SGS.ww.flatten()))
+            writer.writerows(data)
+
+        with open('./out/filtered/SGS/S/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["x","y","z","uu","uv","uw","vu","vv","vw","wu","wv","ww"])
+            data = np.column_stack((grid_filter.x.flatten(),
+                                    grid_filter.y.flatten(),
+                                    grid_filter.z.flatten(),
+                                    S.uu.flatten(),
+                                    S.uv.flatten(),
+                                    S.uw.flatten(),
+                                    S.vu.flatten(),
+                                    S.vv.flatten(),
+                                    S.vw.flatten(),
+                                    S.wu.flatten(),
+                                    S.wv.flatten(),
+                                    S.ww.flatten()))
+            writer.writerows(data)
+
+        with open('./out/filtered/SGS/R/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["x","y","z","uu","uv","uw","vu","vv","vw","wu","wv","ww"])
+            data = np.column_stack((grid_filter.x.flatten(),
+                                    grid_filter.y.flatten(),
+                                    grid_filter.z.flatten(),
+                                    R.uu.flatten(),
+                                    R.uv.flatten(),
+                                    R.uw.flatten(),
+                                    R.vu.flatten(),
+                                    R.vv.flatten(),
+                                    R.vw.flatten(),
+                                    R.wu.flatten(),
+                                    R.wv.flatten(),
+                                    R.ww.flatten()))
             writer.writerows(data)
 
         with open('./out/filtered/LES_corrected/t' + str(i) + '.csv', 'w', newline='') as csvfile:
