@@ -6,6 +6,7 @@ from src.filter import *
 from src.roll_view import *
 from src.interface import *
 from src.time_advance_RK3 import *
+from src.time_advance_RK3_delta import *
 
 # For parallelization
 os.system("taskset -p 0xff %d" % os.getpid())
@@ -50,10 +51,9 @@ if not read:
 
 grid_DNS.define_wavenumber()
 
-# Defining LES grid
+# Defining LES grids
 grid_LES_corrected, SGS = filter_grid(grid_DNS, grid_filter)
 grid_LES_uncorrected = cp.deepcopy(grid_LES_corrected)
-grid_filter = cp.deepcopy(grid_LES_corrected)
 
 print("==========================================")
 print("READING: " + filename if read else "READING: N/A")
@@ -78,16 +78,9 @@ rsdlsw = np.array([grid_DNS.w[sample_index]])  # residual values of w
 
 while (time < max_time):
     grid_DNS, h = time_advance_RK3(grid_DNS, LES=False)
-    original_filter = cp.deepcopy(grid_filter)
     grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=True, timeControl=h, SGS_tensor=SGS)
-    grid_LES_expected, h = time_advance_RK3(original_filter, LES=True, timeControl=h, SGS_tensor=SGS)
-
-    delta_u = (grid_filter.u - grid_LES_expected.u) / h
-    delta_v = (grid_filter.v - grid_LES_expected.v) / h
-    delta_w = (grid_filter.w - grid_LES_expected.w) / h
-
-    grid_LES_corrected, h = time_advance_RK3(grid_LES_corrected, LES=True, timeControl=h, SGS_tensor=SGS, delta_u=delta_u, delta_v=delta_v, delta_w=delta_w)
+    grid_LES_corrected, h, delta = time_advance_RK3_delta(grid_LES_corrected, grid_DNS, timeControl=h)
     
     if (verbose):
         # get the point located at the middle of the grid
@@ -187,13 +180,19 @@ while (time < max_time):
 
         with open('./out/filtered/delta/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(["x","y","z","delta_u","delta_v","delta_w"])
+            writer.writerow(["x","y","z","delta_u_1","delta_v_1","delta_w_2","delta_u_2","delta_v_2","delta_w_2","delta_u_3","delta_v_3","delta_w_3"])
             data = np.column_stack((grid_LES_corrected.x.flatten(),
                                     grid_LES_corrected.y.flatten(),
                                     grid_LES_corrected.z.flatten(),
-                                    delta_u.flatten(),
-                                    delta_v.flatten(),
-                                    delta_w.flatten()))
+                                    delta[:,:,:,0,0].flatten(),
+                                    delta[:,:,:,0,1].flatten(),
+                                    delta[:,:,:,0,2].flatten(),
+                                    delta[:,:,:,1,0].flatten(),
+                                    delta[:,:,:,1,1].flatten(),
+                                    delta[:,:,:,1,2].flatten(),
+                                    delta[:,:,:,2,0].flatten(),
+                                    delta[:,:,:,2,1].flatten(),
+                                    delta[:,:,:,2,2].flatten()))
             writer.writerows(data)
 
 
