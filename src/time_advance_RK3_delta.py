@@ -10,10 +10,9 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
     Computes corrected velocity field using RK3
 
     Inputs:
-        grid: grid object
-        LES: Boolean for whether or not to use LES
-        timeControl: time step
-        SGS_tensor: subgrid scale tensor object
+        grid_LES: LES grid object
+        grid_DNS: DNS grid object
+        timeControl: time step (optional)
     """
 
     # weights, nodes, and Runge-Kutta matrix

@@ -77,10 +77,9 @@ rsdlsv = np.array([grid_DNS.v[sample_index]])  # residual values of v
 rsdlsw = np.array([grid_DNS.w[sample_index]])  # residual values of w
 
 while (time < max_time):
-    grid_DNS, h = time_advance_RK3(grid_DNS, LES=False)
+    grid_LES_corrected, h, delta = time_advance_RK3_delta(grid_LES_corrected, grid_DNS)
     grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=True, timeControl=h, SGS_tensor=SGS)
-    grid_LES_corrected, h, delta = time_advance_RK3_delta(grid_LES_corrected, grid_DNS, timeControl=h)
     
     if (verbose):
         # get the point located at the middle of the grid
