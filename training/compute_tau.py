@@ -5,8 +5,8 @@ def compute_tau(R,S,grid_spacing,C):
     def single_tau(Rtens,Stens):
         tau = np.empty([3,3])
         tau = C[0] * grid_spacing**2 * np.sqrt(np.trace(Stens*Stens)) * Stens
-        tau += C[1] * grid_spacing**2 * (Stens*Stens - np.diag(Stens*Stens))
-        tau += C[2] * grid_spacing**2 * (Rtens*Rtens - np.diag(Rtens*Rtens))
+        tau += C[1] * grid_spacing**2 * 1/3 * np.diag(np.sum(Stens*Stens, axis=1))
+        tau += C[2] * grid_spacing**2 * 1/3 * np.diag(np.sum(Rtens*Rtens, axis=1))
         return tau
 
     tau = np.empty([R.shape[0], R.shape[1], R.shape[2], 3, 3])
