@@ -25,7 +25,7 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
 
     # Maximum timestep for numerical stability (CFL condition)
     if not timeControl:
-        h = abs(min(C*grid_LES.dx/np.max(grid_LES.u), C*grid_LES.dy/np.max(grid_LES.v), C*grid_LES.dz/np.max(grid_LES.w)))
+        h = abs(min(C*grid_LES.dx/np.max(grid_LES.u), C*grid_LES.dy/np.max(grid_LES.v), C*grid_LES.dz/np.max(grid_LES.w))) / 5
     else:
         h = timeControl
 
@@ -57,11 +57,14 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
 
         # remove divergence and compute RHS of Navier-Stokes
         grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS,True)
+        grid_LES.u, grid_LES.v, grid_LES.w = compute_projection_step(grid_LES,True)
 
         # compute RHS and delta
         compute_RHS(grid_DNS)
+        grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS,False)
         grid_filtered, SGS_f = filter_grid(grid_DNS, grid_filtered)
         compute_RHS(grid_LES, SGS=SGS_f)
+        grid_LES.u, grid_LES.v, grid_LES.w = compute_projection_step(grid_LES,False)
 
         delta[:,:,:,i,0] = grid_filtered.Fu - grid_LES.Fu
         delta[:,:,:,i,1] = grid_filtered.Fv - grid_LES.Fv
@@ -71,16 +74,16 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
         grid_LES.Fv += delta[:,:,:,i,1]
         grid_LES.Fw += delta[:,:,:,i,2]
 
-        maxdiff = np.max([grid_LES.Fu - grid_filtered.Fu, \
-                          grid_LES.Fv - grid_filtered.Fv, \
-                          grid_LES.Fw - grid_filtered.Fw])
+        maxdiff = np.max(np.abs([grid_LES.Fu - grid_filtered.Fu, \
+                                 grid_LES.Fv - grid_filtered.Fv, \
+                                 grid_LES.Fw - grid_filtered.Fw]))
         
         if maxdiff > 1e-5:
-            raise ValueError('Filtered RHS and LES RHS do not match. Max(Fu_f - Fu_LES) = ' + str(maxdiff) + '.)')
+            raise ValueError('Filtered RHS and LES RHS do not match. Max(Fu_f - Fu_LES) = ' + str(maxdiff) + '.')
 
-        # remove divergence from Fu, Fv, Fw
-        Fu_f[:,:,:,i], Fv_f[:,:,:,i], Fw_f[:,:,:,i] = compute_projection_step(grid_LES,False)
-        Fu[:,:,:,i], Fv[:,:,:,i], Fw[:,:,:,i] = compute_projection_step(grid_DNS,False)
+        # assign corrected values to intermediate numpy arrays
+        Fu[:,:,:,i], Fv[:,:,:,i], Fw[:,:,:,i] = grid_DNS.Fu, grid_DNS.Fv, grid_DNS.Fw
+        Fu_f[:,:,:,i], Fv_f[:,:,:,i], Fw_f[:,:,:,i] = grid_LES.Fu, grid_LES.Fv, grid_LES.Fw
 
     grid_LES.u = u0_f + h * np.sum(Fu_f * b, axis=-1)
     grid_LES.v = v0_f + h * np.sum(Fv_f * b, axis=-1)
@@ -89,7 +92,7 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
     grid_DNS.v = v0_DNS + h * np.sum(Fv * b, axis=-1)
     grid_DNS.w = w0_DNS + h * np.sum(Fw * b, axis=-1)
 
-    #grid_LES.u, grid_LES.v, grid_LES.w = compute_projection_step(grid_LES,True)
+    grid_LES.u, grid_LES.v, grid_LES.w = compute_projection_step(grid_LES,True)
     grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS,True)
 
     return grid_LES, h, delta
