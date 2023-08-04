@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from compute_tau import compute_tau
+from compute_tau import *
 from read_SGS import read_SGS
 
 device = (
@@ -72,11 +72,9 @@ for epoch in range(num_epochs):
         # Forward pass
         input = torch.cat((R_tensor, S_tensor), dim=-1)  # Concatenate R, S, delta along the last dimension
         input = torch.flatten(input)  # Flatten the input
-        pred = model(input)  # Compute the output of the model
-
+        pred = model(input, R, S, 2 * np.pi / R.shape[0])  # Compute the output of the model
         pred = pred.detach().numpy()
-        tau_pred = compute_tau(R, S, 2 * np.pi / R.shape[0], pred)  # Compute the SGS stress tensor
-        tau_del = tau #+ delta  # Add delta to the SGS stress tensor
+        tau_del = pred #+ delta  # Add delta to the SGS stress tensor
         tau_del = torch.tensor(tau_del, dtype=torch.float32, requires_grad=True)  # Convert tau_del to a tensor
         tau_pred = torch.tensor(tau_pred, dtype=torch.float32, requires_grad=True)  # Convert tau_pred to a tensor
 
