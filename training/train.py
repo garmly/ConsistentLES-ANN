@@ -19,11 +19,11 @@ class SGS_ANN(nn.Module):
     def __init__(self):
         super(SGS_ANN, self).__init__()
         self.requires_grad_(True)
-        self.layer1 = nn.Linear(16*16*16*3*3*2, 20)
-        self.layer2 = nn.Linear(20, 20)
-        self.layer3 = nn.Linear(20, 20)
-        self.layer4 = nn.Linear(20, 20)
-        self.output_layer = nn.Linear(20, 3)
+        self.layer1 = nn.Linear(16*16*16*3*3*2, 100)
+        self.layer2 = nn.Linear(100, 100)
+        self.layer3 = nn.Linear(100, 100)
+        self.layer4 = nn.Linear(100, 100)
+        self.output_layer = nn.Linear(100, 3)
 
     def forward(self, x):
         x = torch.relu(self.layer1(x))
@@ -40,7 +40,7 @@ model = SGS_ANN()
 loss_function = nn.MSELoss()
 
 # Define the optimizer as stochastic gradient descent (SGD)
-optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
 # Number of training epochs
 num_epochs = 10
@@ -52,6 +52,10 @@ num_batches = 100
 for epoch in range(num_epochs):
     total_loss = 0.0
 
+    # change to 6-1 model
+    # make pointwise
+    # make draft presentation for group meeting
+
     for batch_num in range(num_batches):
         # Load the data
         tau = read_SGS(f"./out/filtered/SGS/Tau/t{batch_num + 1}.csv", 16, 16, 16)
@@ -61,25 +65,20 @@ for epoch in range(num_epochs):
         
         R_tensor = torch.tensor(R, dtype=torch.float32, requires_grad=True)
         S_tensor = torch.tensor(S, dtype=torch.float32, requires_grad=True)
+        tau = torch.tensor(tau, dtype=torch.float32, requires_grad=True)
 
-        # expanding dimensions for concatenation
-        R_tensor = R_tensor[:, :, :, :, :, None]
-        S_tensor = S_tensor[:, :, :, :, :, None]
-        
         # Zero the gradients (reset the gradients for each batch)
         optimizer.zero_grad()
 
         # Forward pass
-        input = torch.cat((R_tensor, S_tensor), dim=-1)  # Concatenate R, S, delta along the last dimension
+        input = torch.cat((R_tensor[:, :, :, :, :, None], S_tensor[:, :, :, :, :, None]), dim=-1)  # Concatenate R, S, delta along the last dimension
         input = torch.flatten(input)  # Flatten the input
-        pred = model(input, R, S, 2 * np.pi / R.shape[0])  # Compute the output of the model
-        pred = pred.detach().numpy()
+        pred = model(input)  # Compute the output of the model
+        pred = tau_funct.apply(pred, R_tensor, S_tensor, np.pi*2 / 16)  # Compute the predicted SGS stress tensor
         tau_del = pred #+ delta  # Add delta to the SGS stress tensor
-        tau_del = torch.tensor(tau_del, dtype=torch.float32, requires_grad=True)  # Convert tau_del to a tensor
-        tau_pred = torch.tensor(tau_pred, dtype=torch.float32, requires_grad=True)  # Convert tau_pred to a tensor
 
         # Compute the loss
-        loss = loss_function(tau_pred, tau_del)
+        loss = loss_function(pred, tau)
         total_loss += loss.item()
 
         # Backpropagation
@@ -88,8 +87,8 @@ for epoch in range(num_epochs):
         # Update the model's parameters
         optimizer.step()
 
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                print(name, param.grad)
+        #for name, param in model.named_parameters():
+        #    if param.requires_grad:
+        #        print(name, param.grad)
 
     print(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {total_loss / num_batches:.4f}")
