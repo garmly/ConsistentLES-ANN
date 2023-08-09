@@ -74,6 +74,10 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
         grid_LES.Fv += delta[:,:,:,i,1]
         grid_LES.Fw += delta[:,:,:,i,2]
 
+        grid_LES.Fu = grid_filtered.Fu
+        grid_LES.Fv = grid_filtered.Fv
+        grid_LES.Fw = grid_filtered.Fw
+
         maxdiff = np.max(np.abs([grid_LES.Fu - grid_filtered.Fu, \
                                  grid_LES.Fv - grid_filtered.Fv, \
                                  grid_LES.Fw - grid_filtered.Fw]))

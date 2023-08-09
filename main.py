@@ -52,6 +52,7 @@ if not read:
     grid_DNS.vortex(-4,1,2,1,2,1)
 
 grid_DNS.define_wavenumber()
+grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS)
 
 # Defining LES grids
 grid_LES_corrected, SGS = filter_grid(grid_DNS, grid_filter)
@@ -67,8 +68,6 @@ print("Ly: " + str(Ly))
 print("Lz: " + str(Lz))
 print("==========================================")
 
-grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS)
-
 i = 1                                          # iteration
 tvals = np.array([])                           # time values
 uvals = np.array([])                           # u values
@@ -79,7 +78,7 @@ rsdlsv = np.array([grid_DNS.v[sample_index]])  # residual values of v
 rsdlsw = np.array([grid_DNS.w[sample_index]])  # residual values of w
 
 while (time < max_time):
-    grid_LES_corrected, h, delta = time_advance_RK3_delta(grid_LES_corrected, grid_DNS)
+    grid_LES_corrected, h, delta = time_advance_RK3_delta(grid_LES_corrected, grid_DNS, timeControl = 0.0001)
     grid_filter, SGS = filter_grid(grid_DNS, grid_filter)
     grid_LES_uncorrected, h = time_advance_RK3(grid_LES_uncorrected, LES=True, timeControl=h, SGS_tensor=SGS)
     R, S = compute_RS(grid_filter)
@@ -97,7 +96,7 @@ while (time < max_time):
 
         print("TIME: " + str(time))
         print("==========================================")
-        print("dT: " + str(h))
+        print("dT:   " + str(h))
         print("UVAL: " + str(uvals[i]))
         print("VVAL: " + str(vvals[i]))
         print("WVAL: " + str(vvals[i]))
