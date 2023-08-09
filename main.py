@@ -35,6 +35,7 @@ else:
 time = 0
 verbose = True
 sample_index = [Nx//2,Ny//2,Nz//2]
+unfiltered_write = False
 
 # Defining filtered quantities
 dxf = Lx * np.pi * 2 / Nxf
@@ -114,17 +115,19 @@ while (time < max_time):
         raise ValueError('Velocity field is not divergence free. Max(div) = ' + str(np.max(div)))
     
     if (i % write_interval == 0):
-        with open('./out/unfiltered/t' + str(i) + '.csv', 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(["x","y","z","u","v","w","p"])
-            data = np.column_stack((grid_DNS.x.flatten(),
-                                    grid_DNS.y.flatten(),
-                                    grid_DNS.z.flatten(),
-                                    grid_DNS.u.flatten(),
-                                    grid_DNS.v.flatten(),
-                                    grid_DNS.w.flatten(),
-                                    grid_DNS.p.flatten()))
-            writer.writerows(data)
+
+        if unfiltered_write:
+            with open('./out/unfiltered/t' + str(i) + '.csv', 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(["x","y","z","u","v","w","p"])
+                data = np.column_stack((grid_DNS.x.flatten(),
+                                        grid_DNS.y.flatten(),
+                                        grid_DNS.z.flatten(),
+                                        grid_DNS.u.flatten(),
+                                        grid_DNS.v.flatten(),
+                                        grid_DNS.w.flatten(),
+                                        grid_DNS.p.flatten()))
+                writer.writerows(data)
 
         with open('./out/filtered/raw/t' + str(i) + '.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
