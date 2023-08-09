@@ -25,7 +25,7 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
 
     # Maximum timestep for numerical stability (CFL condition)
     if not timeControl:
-        h = abs(min(C*grid_LES.dx/np.max(grid_LES.u), C*grid_LES.dy/np.max(grid_LES.v), C*grid_LES.dz/np.max(grid_LES.w))) / 5
+        h = abs(min(C*grid_LES.dx/np.max(grid_LES.u), C*grid_LES.dy/np.max(grid_LES.v), C*grid_LES.dz/np.max(grid_LES.w)))
     else:
         h = timeControl
 
@@ -37,7 +37,7 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
     Fu_f = np.zeros([grid_LES.Nx,grid_LES.Ny,grid_LES.Nz,3])
     Fv_f = np.zeros([grid_LES.Nx,grid_LES.Ny,grid_LES.Nz,3])
     Fw_f = np.zeros([grid_LES.Nx,grid_LES.Ny,grid_LES.Nz,3])
-    
+
     # Do the same for DNS
     Fu = np.zeros([grid_DNS.Nx,grid_DNS.Ny,grid_DNS.Nz,3])
     Fv = np.zeros([grid_DNS.Nx,grid_DNS.Ny,grid_DNS.Nz,3])
@@ -59,12 +59,18 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
         grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS,True)
         grid_LES.u, grid_LES.v, grid_LES.w = compute_projection_step(grid_LES,True)
 
-        # compute RHS and delta
-        compute_RHS(grid_DNS)
-        grid_DNS.u, grid_DNS.v, grid_DNS.w = compute_projection_step(grid_DNS,False)
+        # compute SGS and apply filter
         grid_filtered, SGS_f = filter_grid(grid_DNS, grid_filtered)
+
+        # compute RHS of both grids
+        compute_RHS(grid_DNS)
         compute_RHS(grid_LES, SGS=SGS_f)
-        grid_LES.u, grid_LES.v, grid_LES.w = compute_projection_step(grid_LES,False)
+
+        # remove divergence and compute RHS of Navier-Stokes
+        grid_DNS.Fu, grid_DNS.Fv, grid_DNS.Fw = compute_projection_step(grid_DNS,False)
+        grid_LES.Fu, grid_LES.Fv, grid_LES.Fw = compute_projection_step(grid_LES,False)
+
+        grid_filtered, SGS_f = filter_grid(grid_DNS, grid_filtered)
 
         delta[:,:,:,i,0] = grid_filtered.Fu - grid_LES.Fu
         delta[:,:,:,i,1] = grid_filtered.Fv - grid_LES.Fv
@@ -74,15 +80,11 @@ def time_advance_RK3_delta(grid_LES, grid_DNS, timeControl=None):
         grid_LES.Fv += delta[:,:,:,i,1]
         grid_LES.Fw += delta[:,:,:,i,2]
 
-        grid_LES.Fu = grid_filtered.Fu
-        grid_LES.Fv = grid_filtered.Fv
-        grid_LES.Fw = grid_filtered.Fw
-
         maxdiff = np.max(np.abs([grid_LES.Fu - grid_filtered.Fu, \
                                  grid_LES.Fv - grid_filtered.Fv, \
                                  grid_LES.Fw - grid_filtered.Fw]))
         
-        if maxdiff > 1e-5:
+        if maxdiff > 1e-10:
             raise ValueError('Filtered RHS and LES RHS do not match. Max(Fu_f - Fu_LES) = ' + str(maxdiff) + '.')
 
         # assign corrected values to intermediate numpy arrays
