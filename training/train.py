@@ -19,11 +19,11 @@ class SGS_ANN(nn.Module):
     def __init__(self):
         super(SGS_ANN, self).__init__()
         self.requires_grad_(True)
-        self.layer1 = nn.Linear(16*16*16*3*3*2, 100)
-        self.layer2 = nn.Linear(100, 100)
-        self.layer3 = nn.Linear(100, 100)
-        self.layer4 = nn.Linear(100, 100)
-        self.output_layer = nn.Linear(100, 3)
+        self.layer1 = nn.Linear(8, 20)
+        self.layer2 = nn.Linear(20, 20)
+        self.layer3 = nn.Linear(20, 20)
+        self.layer4 = nn.Linear(20, 20)
+        self.output_layer = nn.Linear(20, 1)
 
     def forward(self, x):
         x = torch.relu(self.layer1(x))
@@ -40,13 +40,13 @@ model = SGS_ANN()
 loss_function = nn.MSELoss()
 
 # Define the optimizer as stochastic gradient descent (SGD)
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
 # Number of training epochs
 num_epochs = 10
 
 # Number of snapshots
-num_batches = 100
+num_batches = 3
 
 # Training loop
 for epoch in range(num_epochs):
@@ -63,32 +63,45 @@ for epoch in range(num_epochs):
         S = read_SGS(f"./out/filtered/SGS/S/t{batch_num + 1}.csv", 16, 16, 16)
         delta = read_SGS(f"./out/filtered/delta/t{batch_num + 1}.csv", 16, 16, 16)
         
-        R_tensor = torch.tensor(R, dtype=torch.float32, requires_grad=True)
-        S_tensor = torch.tensor(S, dtype=torch.float32, requires_grad=True)
-        tau = torch.tensor(tau, dtype=torch.float32, requires_grad=True)
+        for i in range(R.shape[0]):
+            for j in range(R.shape[1]):
+                for k in range(R.shape[2]):
+                    # Convert the data to tensors
+                    R_tensor = torch.tensor(R[i,j,k], dtype=torch.float32, requires_grad=True)
+                    S_tensor = torch.tensor(S[i,j,k], dtype=torch.float32, requires_grad=True)
+                    tau_tensor = torch.tensor(tau[i,j,k], dtype=torch.float32, requires_grad=True)
 
-        # Zero the gradients (reset the gradients for each batch)
-        optimizer.zero_grad()
+                    # Zero the gradients (reset the gradients for each batch)
+                    optimizer.zero_grad()
 
-        # Forward pass
-        input = torch.cat((R_tensor[:, :, :, :, :, None], S_tensor[:, :, :, :, :, None]), dim=-1)  # Concatenate R, S, delta along the last dimension
-        input = torch.flatten(input)  # Flatten the input
-        pred = model(input)  # Compute the output of the model
-        pred = tau_funct.apply(pred, R_tensor, S_tensor, np.pi*2 / 16)  # Compute the predicted SGS stress tensor
-        tau_del = pred #+ delta  # Add delta to the SGS stress tensor
+                    # get 6 coefficients for model
+                    input = torch.tensor([torch.trace(S_tensor),
+                                          torch.trace(R_tensor**2),
+                                          torch.trace(S_tensor**3),
+                                          torch.trace(torch.mul(S_tensor,R_tensor**2)),
+                                          torch.trace(torch.mul(S_tensor**2,R_tensor**2)),
+                                          torch.trace(torch.mul(S_tensor**3,R_tensor**2)),
+                                          1e-6,
+                                          3**0.5 * np.pi * 2 / 16], 
+                                         dtype=torch.float32)
+                    
+                    # Forward pass
+                    nu_t = model(input)[0]  # Compute the output of the model
+                    pred = tau_6c_funct.apply(nu_t, S_tensor)  # Compute the predicted SGS stress tensor
+                    tau_del = tau_tensor #+ delta  # Add delta to the SGS stress tensor
 
-        # Compute the loss
-        loss = loss_function(pred, tau)
-        total_loss += loss.item()
+                    # Compute the loss
+                    loss = loss_function(pred, tau_del)
+                    total_loss += loss.item()
 
-        # Backpropagation
-        loss.backward()
+                    # Backpropagation
+                    loss.backward()
 
-        # Update the model's parameters
-        optimizer.step()
+                    # Update the model's parameters
+                    optimizer.step()
 
-        #for name, param in model.named_parameters():
-        #    if param.requires_grad:
-        #        print(name, param.grad)
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                print(name, torch.max(param.grad))
 
-    print(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {total_loss / num_batches:.4f}")
+    print(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {total_loss / num_batches / 4096:.4f}")
