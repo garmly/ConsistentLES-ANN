@@ -24,12 +24,13 @@ class SGS_ANN(nn.Module):
         self.layer3 = nn.Linear(20, 20)
         self.layer4 = nn.Linear(20, 20)
         self.output_layer = nn.Linear(20, 1)
+        self.output_layer.weight.data.normal_(mean=0.0, std=0.01)
 
     def forward(self, x):
-        x = torch.relu(self.layer1(x))
-        x = torch.relu(self.layer2(x))
-        x = torch.relu(self.layer3(x))
-        x = torch.relu(self.layer4(x))
+        x = torch.sigmoid(self.layer1(x))
+        x = torch.sigmoid(self.layer2(x))
+        x = torch.sigmoid(self.layer3(x))
+        x = torch.sigmoid(self.layer4(x))
         x = self.output_layer(x)
         return x
 
@@ -52,16 +53,12 @@ num_batches = 3
 for epoch in range(num_epochs):
     total_loss = 0.0
 
-    # change to 6-1 model
-    # make pointwise
-    # make draft presentation for group meeting
-
     for batch_num in range(num_batches):
         # Load the data
-        tau = read_SGS(f"./out/filtered/SGS/Tau/t{batch_num + 1}.csv", 16, 16, 16)
-        R = read_SGS(f"./out/filtered/SGS/R/t{batch_num + 1}.csv", 16, 16, 16)
-        S = read_SGS(f"./out/filtered/SGS/S/t{batch_num + 1}.csv", 16, 16, 16)
-        delta = read_SGS(f"./out/filtered/delta/t{batch_num + 1}.csv", 16, 16, 16)
+        tau = read_SGS(f"./out/filtered/SGS/Tau/t{batch_num + 1}.csv", 64, 64, 64)
+        R = read_SGS(f"./out/filtered/SGS/R/t{batch_num + 1}.csv", 64, 64, 64)
+        S = read_SGS(f"./out/filtered/SGS/S/t{batch_num + 1}.csv", 64, 64, 64)
+        delta = read_SGS(f"./out/filtered/delta/t{batch_num + 1}.csv", 64, 64, 64)
         
         for i in range(R.shape[0]):
             for j in range(R.shape[1]):
@@ -82,7 +79,7 @@ for epoch in range(num_epochs):
                                           torch.trace(torch.mul(S_tensor**2,R_tensor**2)),
                                           torch.trace(torch.mul(S_tensor**3,R_tensor**2)),
                                           1e-6,
-                                          3**0.5 * np.pi * 2 / 16], 
+                                          3**0.5 * np.pi * 2 / 64], 
                                          dtype=torch.float32)
                     
                     # Forward pass
@@ -100,8 +97,8 @@ for epoch in range(num_epochs):
                     # Update the model's parameters
                     optimizer.step()
 
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                print(name, torch.max(param.grad))
+                    #for name, param in model.named_parameters():
+                    #    if param.requires_grad:
+                    #        print(name, torch.max(param.grad))
 
-    print(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {total_loss / num_batches / 4096:.4f}")
+    print(f"Epoch {epoch+1}/{num_epochs}, Average Loss: {total_loss / num_batches / (64**3):.4f}")

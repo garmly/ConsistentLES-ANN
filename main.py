@@ -9,9 +9,6 @@ from src.time_advance_RK3 import *
 from src.compute_RS import *
 from src.time_advance_RK3_delta import *
 
-# For parallelization
-os.system("taskset -p 0xff %d" % os.getpid())
-
 print("INITIALIZING...")
 
 # reading from file if read is True
