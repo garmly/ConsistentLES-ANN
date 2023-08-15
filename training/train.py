@@ -24,7 +24,6 @@ class SGS_ANN(nn.Module):
         self.layer3 = nn.Linear(20, 20)
         self.layer4 = nn.Linear(20, 20)
         self.output_layer = nn.Linear(20, 1)
-        self.output_layer.weight.data.normal_(mean=0.0, std=0.01)
 
     def forward(self, x):
         x = torch.sigmoid(self.layer1(x))
@@ -41,7 +40,7 @@ model = SGS_ANN()
 loss_function = nn.MSELoss()
 
 # Define the optimizer as stochastic gradient descent (SGD)
-optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
 # Number of training epochs
 num_epochs = 10

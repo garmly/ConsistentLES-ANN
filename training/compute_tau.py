@@ -25,11 +25,11 @@ class tau_4c_funct(torch.autograd.Function):
         for i in range(R.shape[0]):
                 for j in range(R.shape[1]):
                     for k in range(R.shape[2]):
-                        SbarS[i,j,k] = np.sqrt(np.trace(S[i,j,k]*S[i,j,k])) * S[i,j,k]
-                        Sstar[i,j,k] = 1/3 * np.diag(np.sum(S[i,j,k]*S[i,j,k], axis=1))
-                        Rstar[i,j,k] = 1/3 * np.diag(np.sum(R[i,j,k]*R[i,j,k], axis=1))
+                        SbarS = np.sqrt(np.trace(S*S)) * S
+                        Sstar = 1/3 * np.diag(np.sum(S*S, axis=1))
+                        Rstar = 1/3 * np.diag(np.sum(R*R, axis=1))
         grad_input = [SbarS, Sstar, Rstar] * grad_output.detach().numpy() * grid_spacing**2
-        grad_input = grad_input.sum(axis=(1,2,3,4,5))
+        grad_input = grad_input.sum()
         grad_input = torch.tensor(grad_input, dtype=torch.float32)
         return grad_input, None, None, None
 
