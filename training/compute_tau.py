@@ -2,18 +2,8 @@ import numpy as np
 import torch
 
 class tau_4c_funct(torch.autograd.Function):
-    def forward(ctx, input_data, R,S, grid_spacing):
-        ctx.save_for_backward(input_data, R,S)
-        ctx.grid_spacing = grid_spacing
-        # compute the SGS stress tensor from R, S, and coefficients C
-        R = R.detach().numpy()
-        S = S.detach().numpy()
-        tau = np.empty([R.shape[0], R.shape[1], R.shape[2], 3, 3])
-        for i in range(R.shape[0]):
-            for j in range(R.shape[1]):
-                for k in range(R.shape[2]):
-                    tau[i,j,k] = single_tau(input_data.detach().numpy(), R[i,j,k], S[i,j,k], grid_spacing)
-        
+    def forward(ctx, input_data, R,S, grid_spacing):       
+        tau = single_tau(input_data.detach().numpy(), R, S, grid_spacing)
         return torch.tensor(tau, dtype=torch.float32)
 
     def backward(ctx, grad_output):
@@ -21,13 +11,10 @@ class tau_4c_funct(torch.autograd.Function):
         grid_spacing = ctx.grid_spacing
         R = R.detach().numpy()
         S = S.detach().numpy()
-        SbarS = Sstar = Rstar = np.empty([R.shape[0], R.shape[1], R.shape[2], 3, 3])
-        for i in range(R.shape[0]):
-                for j in range(R.shape[1]):
-                    for k in range(R.shape[2]):
-                        SbarS = np.sqrt(np.trace(S*S)) * S
-                        Sstar = 1/3 * np.diag(np.sum(S*S, axis=1))
-                        Rstar = 1/3 * np.diag(np.sum(R*R, axis=1))
+        SbarS = Sstar = Rstar = np.empty([3, 3])
+        SbarS = np.sqrt(np.trace(S*S)) * S
+        Sstar = 1/3 * np.diag(np.sum(S*S, axis=1))
+        Rstar = 1/3 * np.diag(np.sum(R*R, axis=1))
         grad_input = [SbarS, Sstar, Rstar] * grad_output.detach().numpy() * grid_spacing**2
         grad_input = grad_input.sum()
         grad_input = torch.tensor(grad_input, dtype=torch.float32)
