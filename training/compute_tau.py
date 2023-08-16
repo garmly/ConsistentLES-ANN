@@ -2,7 +2,11 @@ import numpy as np
 import torch
 
 class tau_4c_funct(torch.autograd.Function):
-    def forward(ctx, input_data, R,S, grid_spacing):       
+    def forward(ctx, input_data, R,S, grid_spacing):
+        ctx.save_for_backward(input_data, R,S)
+        R = R.detach().numpy()
+        S = S.detach().numpy()
+        ctx.grid_spacing = grid_spacing
         tau = single_tau(input_data.detach().numpy(), R, S, grid_spacing)
         return torch.tensor(tau, dtype=torch.float32)
 
@@ -16,7 +20,7 @@ class tau_4c_funct(torch.autograd.Function):
         Sstar = 1/3 * np.diag(np.sum(S*S, axis=1))
         Rstar = 1/3 * np.diag(np.sum(R*R, axis=1))
         grad_input = [SbarS, Sstar, Rstar] * grad_output.detach().numpy() * grid_spacing**2
-        grad_input = grad_input.sum()
+        grad_input = grad_input.sum(axis=-1)
         grad_input = torch.tensor(grad_input, dtype=torch.float32)
         return grad_input, None, None, None
 

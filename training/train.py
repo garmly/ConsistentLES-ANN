@@ -20,11 +20,11 @@ class SGS_ANN(nn.Module):
     def __init__(self):
         super(SGS_ANN, self).__init__()
         self.requires_grad_(True)
-        self.layer1 = nn.Linear(8, 20)
+        self.layer1 = nn.Linear(15, 20)
         self.layer2 = nn.Linear(20, 20)
         self.layer3 = nn.Linear(20, 20)
         self.layer4 = nn.Linear(20, 20)
-        self.output_layer = nn.Linear(20, 1)
+        self.output_layer = nn.Linear(20, 9)
 
     def forward(self, x):
         x = torch.sigmoid(self.layer1(x))
@@ -50,7 +50,8 @@ num_epochs = 1
 num_batches = 1
 
 loss_list = []
-param6 = True
+param6 = False
+commute = True
 validation = False
 
 # Training loop
@@ -72,8 +73,10 @@ for epoch in range(num_epochs+1):
                     R_tensor = torch.tensor(R[i,j,k], dtype=torch.float32, requires_grad=True)
                     S_tensor = torch.tensor(S[i,j,k], dtype=torch.float32, requires_grad=True)
                     tau_tensor = torch.tensor(tau[i,j,k], dtype=torch.float32, requires_grad=True)
+                    delta_tensor = torch.tensor(delta[i,j,k], dtype=torch.float32, requires_grad=True)
 
                     # Zero the gradients (reset the gradients for each batch)
+
                     optimizer.zero_grad()
 
                     if param6:
@@ -88,19 +91,25 @@ for epoch in range(num_epochs+1):
                                             3**0.5 * np.pi * 2 / 64], 
                                             dtype=torch.float32)
                     else:
-                        input = torch.tensor([R.flatten(), S.tril().flatten()[S != 0]], dtype=torch.float32, requires_grad=True)
+                        in1 = torch.flatten(R_tensor)
+                        in2 = torch.flatten(torch.tril(S_tensor))
+                        in2 = in2[in2 != 0]
+                        input = torch.tensor(torch.cat((in1, in2)),
+                                             dtype=torch.float32, requires_grad=True)
 
                     # Forward pass
-                    nu_t = model(input)[0]  # Compute the output of the model
+                    output = model(input)  # Compute the output of the model
 
+                    # Compute the predicted SGS stress tensor
                     if param6:
-                        pred = tau_6c_funct.apply(nu_t, S_tensor)  # Compute the predicted SGS stress tensor
+                        pred = tau_6c_funct.apply(output, S_tensor)
+                    elif commute:
+                        pred = output
                     else:
-                        pred = tau_4c_funct.apply(nu_t, R_tensor, S_tensor, 2/64)  # Compute the predicted SGS stress tensor
-                    tau_del = tau_tensor #+ delta  # Add delta to the SGS stress tensor
+                        pred = tau_4c_funct.apply(output, R_tensor, S_tensor, 2*np.pi/256)
 
                     # Compute the loss
-                    loss = loss_function(pred, tau_del)
+                    loss = loss_function(pred, torch.flatten(delta_tensor))
                     loss_list.append(loss.item())
                     total_loss += loss.item()
 
