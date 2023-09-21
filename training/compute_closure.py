@@ -5,22 +5,23 @@ import torch
 def dtau_del(tau, delta, index, grid_spacing):
         
         # dtau_1j / dx_j
-        dtau1jdxj = (tau[index][1,:] - np.roll(tau, 1, axis=0)) / grid_spacing
-        dtau1jdxj += (tau[index][1,:] - np.roll(tau, 1, axis=0)) / grid_spacing
-        dtau1jdxj += (tau[index][1,:] - np.roll(tau, 1, axis=0)) / grid_spacing
+        dtau1jdxj = (tau - np.roll(tau, 1, axis=0)) / grid_spacing
+        dtau1jdxj = dtau1jdxj[index][0,:]
+        dtau2jdxj = (tau - np.roll(tau, 1, axis=1)) / grid_spacing
+        dtau2jdxj = dtau2jdxj[index][1,:]
+        dtau3jdxj = (tau - np.roll(tau, 1, axis=2)) / grid_spacing
+        dtau3jdxj = dtau3jdxj[index][2,:]
 
-        # dtau_2j / dx_j
-        dtau2jdxj = (tau[index][2,:] - np.roll(tau, 1, axis=1)) / grid_spacing
-        dtau2jdxj += (tau[index][2,:] - np.roll(tau, 1, axis=1)) / grid_spacing
-        dtau2jdxj += (tau[index][2,:] - np.roll(tau, 1, axis=1)) / grid_spacing
+        dtauijdxj = [dtau1jdxj, dtau2jdxj, dtau3jdxj]
+        print(dtauijdxj.shape)
 
-        # dtau_3j / dx_j
-        dtau3jdxj = (tau[index][3,:] - np.roll(tau, 1, axis=2)) / grid_spacing
-        dtau3jdxj += (tau[index][3,:] - np.roll(tau, 1, axis=2)) / grid_spacing
-        dtau3jdxj += (tau[index][3,:] - np.roll(tau, 1, axis=2)) / grid_spacing
-
-        dtauijdxj = np.array([dtau1jdxj, dtau2jdxj, dtau3jdxj])
         dtau = dtauijdxj + delta
 
         return torch.tensor(dtau, dtype=torch.float32)
 
+# reform dtau_del as a 
+class nu_deriv_funct(torch.autograd.Function):
+        def forward(ctx, input_data, delta):
+                pass
+        def backward():
+                pass
