@@ -34,10 +34,9 @@ def single_tau(C, Rtens,Stens, grid_spacing):
 class tau_nu_funct(torch.autograd.Function):
     def forward(ctx, input_data, S):
         ctx.save_for_backward(S)
-        tau = -2 * input_data * S
-        return tau
+        return -2 * input_data * S
     
     def backward(ctx, grad_output):
         S = ctx.saved_tensors[0]
         grad_input = -2 * S * grad_output
-        return [grad_input.sum()], None
+        return grad_input.squeeze(), None

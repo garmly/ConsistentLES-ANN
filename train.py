@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from matplotlib import pyplot as plt
-from compute_tau import *
-from compute_closure import *
-from read_SGS import read_SGS
+from training.compute_tau import *
+from training.compute_closure import *
+from training.read_SGS import read_SGS
 
 device = (
     "cuda"
@@ -15,6 +15,7 @@ device = (
     else "cpu"
 )
 print(f"Using {device} device for training.")
+path = './in'
 
 # Define the neural network architecture
 class SGS_ANN(nn.Module):
@@ -47,47 +48,32 @@ optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
 # Number of training epochs
 num_epochs = 1
 
-# Number of snapshots
-num_batches = 1
+# Number of time snapshots
+num_batches = 10
 
 loss_list = []
-indices_list = np.empty([num_batches, 3, 64, 64, 64])
-validation = False
 
+validation = False
 # Training loop
 for epoch in range(num_epochs+1):
     total_loss = 0.0
 
     for batch_num in range(num_batches):
         # Load the data
-        tau = read_SGS(f"./out/filtered/SGS/Tau/t{batch_num + 1}.csv", 64, 64, 64)
-        R = read_SGS(f"./out/filtered/SGS/R/t{batch_num + 1}.csv", 64, 64, 64)
-        S = read_SGS(f"./out/filtered/SGS/S/t{batch_num + 1}.csv", 64, 64, 64)
-        delta = read_SGS(f"./out/filtered/delta/t{batch_num + 1}.csv", 64, 64, 64)
+        tau = read_SGS(f"{path}/filtered/SGS/Tau/t{batch_num + 1}.csv", 64, 64, 64)
+        R = read_SGS(f"{path}/filtered/SGS/R/t{batch_num + 1}.csv", 64, 64, 64)
+        S = read_SGS(f"{path}/filtered/SGS/S/t{batch_num + 1}.csv", 64, 64, 64)
+        delta = read_SGS(f"{path}/filtered/delta/t{batch_num + 1}.csv", 64, 64, 64)
 
         element = 0
-        np.random.seed(0)
-        
-        if not validation:
-            # create 3 unique and random indices
-            i1 = np.arange(0, R.shape[0])
-            i2 = np.arange(0, R.shape[1])
-            i3 = np.arange(0, R.shape[2])
-            np.random.shuffle(i1)
-            np.random.shuffle(i2)
-            np.random.shuffle(i3)
-
-        else:
-            i1,i2,i3 = indices_list[batch_num]
-
         for i in range(R.shape[0]):
             for j in range(R.shape[1]):
                 for k in range(R.shape[2]):
                     # Convert the data to tensors
-                    R_tensor = torch.tensor(R[i1[i],i2[j],i3[k]], dtype=torch.float32, requires_grad=True)
-                    S_tensor = torch.tensor(S[i1[i],i2[j],i3[k]], dtype=torch.float32, requires_grad=True)
-                    tau_tensor = torch.tensor(tau[i1[i],i2[j],i3[k]], dtype=torch.float32, requires_grad=True)
-                    delta_tensor = torch.tensor(delta[i1[i],i2[j],i3[k]], dtype=torch.float32, requires_grad=True)
+                    R_tensor = torch.tensor(R[i,j,k], dtype=torch.float32, requires_grad=True)
+                    S_tensor = torch.tensor(S[i,j,k], dtype=torch.float32, requires_grad=True)
+                    tau_tensor = torch.tensor(tau[i,j,k], dtype=torch.float32, requires_grad=True)
+                    delta_tensor = torch.tensor(delta[i,j,k,0], dtype=torch.float32, requires_grad=True)
 
                     # Zero the gradients (reset the gradients for each batch)
                     optimizer.zero_grad()
@@ -106,14 +92,12 @@ for epoch in range(num_epochs+1):
                     # Forward pass
                     output = model(input)  # Compute the output of the model
 
-                    print(dtau_del(tau,delta_tensor.detach().numpy()[0, :],[i1[i],i2[j],i3[k]],2*np.pi/64).shape)
-
                     # Compute the predicted SGS stress tensor
                     pred_nu = tau_nu_funct.apply(output, S_tensor)
-                    pred = nu_deriv_funct.apply(output, R_tensor, S_tensor, delta_tensor, 2*np.pi/64)
+                    pred = nu_deriv_funct.apply(output,tau,delta_tensor,[i,j,k],2*np.pi/64)
 
                     # Compute the loss
-                    loss = loss_function(pred_nu, dtau_del(tau,delta,[i1[i],i2[j],i3[k]],2*np.pi/64))
+                    loss = loss_function(pred_nu, dtau_del(tau,delta_tensor,[i,j,k],2*np.pi/64))
                     loss_list.append(loss.item())
                     total_loss += loss.item()
 

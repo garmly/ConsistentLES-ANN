@@ -10,7 +10,7 @@ def read_SGS(filename, Nx,Ny,Nz):
         tau = np.zeros([Nx*Ny*Nz,9])
         for i,row in enumerate(reader):
             for j,val in enumerate(row):
-                if j > 2:
+                if j > 2 and i < Nx*Ny*Nz:
                     tau[i,j-3] = float(val)
     tau = tau.reshape([Nx,Ny,Nz,3,3])
     return tau
