@@ -58,10 +58,10 @@ S = read_SGS(f"{path}/filtered/SGS/S/t{batch_num + 1}.csv", 64, 64, 64)
 delta = read_SGS(f"{path}/filtered/delta/t{batch_num + 1}.csv", 64, 64, 64)
 
 # Convert the data to tensors
-R_tensor = torch.tensor(R[31,31,31], dtype=torch.float32, requires_grad=True)
-S_tensor = torch.tensor(S[31,31,31], dtype=torch.float32, requires_grad=True)
-tau_tensor = torch.tensor(tau[31,31,31], dtype=torch.float32, requires_grad=True)
-delta_tensor = torch.tensor(delta[31,31,31], dtype=torch.float32, requires_grad=True)
+R_tensor = torch.tensor(R[21,21,21], dtype=torch.float32, requires_grad=True)
+S_tensor = torch.tensor(S[21,21,21], dtype=torch.float32, requires_grad=True)
+tau_tensor = torch.tensor(tau[21,21,21], dtype=torch.float32, requires_grad=True)
+delta_tensor = torch.tensor(delta[21,21,21], dtype=torch.float32, requires_grad=True)
 
 epoch = 0
 total_loss = 0
@@ -72,12 +72,12 @@ for i in range(num_epochs):
     optimizer.zero_grad()
 
     # get 6 coefficients for model
-    input = torch.tensor([torch.trace(S_tensor),
+    input = torch.tensor([torch.trace(S_tensor**2),
                             torch.trace(R_tensor**2),
                             torch.trace(S_tensor**3),
-                            torch.trace(torch.mul(S_tensor,R_tensor**2)),
-                            torch.trace(torch.mul(S_tensor**2,R_tensor**2)),
-                            torch.trace(torch.mul(S_tensor**3,R_tensor**2)),
+                            torch.trace(S_tensor*R_tensor**2),
+                            torch.trace(S_tensor**2*R_tensor**2),
+                            torch.trace(S_tensor**2*R_tensor**2*S_tensor*R_tensor),
                             1e-6,
                             3**0.5 * np.pi * 2 / 64], 
                             dtype=torch.float32)
@@ -87,10 +87,10 @@ for i in range(num_epochs):
 
     # Compute the predicted SGS stress tensor
     pred_nu = tau_nu_funct.apply(output, S_tensor)
-    pred = nu_deriv_funct.apply(output,tau,delta_tensor,[31,31,31],2*np.pi/64)
+    pred = nu_deriv_funct.apply(pred_nu,tau,delta_tensor,[21,21,21],2*np.pi/64)
 
     # Compute the loss
-    loss = loss_function(pred_nu, dtau_del(tau,delta_tensor,[31,31,31],2*np.pi/64))
+    loss = loss_function(pred_nu, dtau_del(tau,delta_tensor,[21,21,21],2*np.pi/64))
     loss_list.append(loss.item())
     total_loss += loss.item()
 
@@ -104,15 +104,16 @@ for i in range(num_epochs):
 
 # Print predicted and actual closure terms
 print(f'\nPredicted closure term:\n{pred}')
-print(f'Actual closure term:\n{dtau_del(tau,delta_tensor,[31,31,31],2*np.pi/64)}')
+print(f'Actual closure term:\n{dtau_del(tau,delta_tensor,[21,21,21],2*np.pi/64)}')
 
 # Print predicted and actual SGS stress tensors
-print(f'\nPredicted SGS stress tensor:\n{pred_nu*S_tensor}')
+print(f'Predicted SGS stress tensor:\n{pred_nu*S_tensor}')
 print(f'Actual SGS stress tensor:\n{tau_tensor}')
 print(f'Actual S tensor:\n{S_tensor}')
 
 conv_size = 1
 plt.plot(np.convolve(loss_list, np.ones(conv_size), 'valid') / conv_size, label='Training')
+plt.title('Loss vs. Iteration (inconsistent model)')
 plt.xlabel('Iteration')
 plt.ylabel('Loss')
 plt.show()

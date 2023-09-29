@@ -22,7 +22,7 @@ def dtau_del(tau, delta, index, grid_spacing):
         dtauijdxj = [dtau1jdxj, dtau2jdxj, dtau3jdxj]
 
         # resolved closure term
-        dtau = delta.detach().numpy() - dtauijdxj
+        dtau = dtauijdxj
 
         return torch.tensor(dtau, dtype=torch.float32)
 
@@ -34,5 +34,5 @@ class nu_deriv_funct(torch.autograd.Function):
                 return dtau_del(pred_tau, delta, index, grid_spacing)
         
         def backward(ctx, grad_output):
-                print(grad_output)
-                return torch.tile(grad_output, (3,1))
+                grad = torch.tile(grad_output/3, (1,3))
+                return grad
