@@ -22,7 +22,7 @@ class SGS_ANN(nn.Module):
     def __init__(self):
         super(SGS_ANN, self).__init__()
         self.requires_grad_(True)
-        self.layer1 = nn.Linear(8, 20)
+        self.layer1 = nn.Linear(6, 20)
         self.layer2 = nn.Linear(20, 20)
         self.layer3 = nn.Linear(20, 20)
         self.layer4 = nn.Linear(20, 20)
@@ -70,16 +70,15 @@ delta_tensor = torch.tensor(delta[21,21,21], dtype=torch.float32, requires_grad=
 epoch = 0
 total_loss = 0
 
+I1 = torch.trace(torch.mm(S_tensor,S_tensor))
+I2 = torch.trace(torch.mm(R_tensor,R_tensor))
+I3 = torch.trace(torch.mm(torch.mm(S_tensor,S_tensor),S_tensor))
+I4 = torch.trace(torch.mm(torch.mm(S_tensor,R_tensor),R_tensor))
+I5 = torch.trace(torch.mm(torch.mm(S_tensor,S_tensor),torch.mm(R_tensor,R_tensor)))
+I6 = torch.trace(torch.mm(torch.mm(torch.mm(S_tensor,S_tensor),torch.mm(R_tensor,R_tensor)),torch.mm(S_tensor,R_tensor)))
+
 # get 6 coefficients for model
-input = torch.tensor([torch.trace(S_tensor**2),
-                        torch.trace(R_tensor**2),
-                        torch.trace(S_tensor**3),
-                        torch.trace(S_tensor*R_tensor**2),
-                        torch.trace(S_tensor**2*R_tensor**2),
-                        torch.trace(S_tensor**2*R_tensor**2*S_tensor*R_tensor),
-                        1e-6,
-                        3**0.5 * np.pi * 2 / 64], 
-                        dtype=torch.float32)
+input = torch.tensor([I1, I2, I3, I4, I5, I6], dtype=torch.float32)
 
 # Training loop
 for i in range(num_epochs):
@@ -90,8 +89,7 @@ for i in range(num_epochs):
     output = model(input)  # Compute the output of the model
 
     # Compute the predicted SGS stress tensor
-    pred_nu = tau_nu_funct.apply(output, S_tensor)
-    pred = nu_deriv_funct.apply(pred_nu,tau,delta_tensor,[21,21,21],2*np.pi/64)
+    pred = nu_deriv_funct.apply(output,S,delta_tensor,[21,21,21],2*np.pi/64,tau)
 
     # Compute the loss
     loss = loss_function(pred, dtau_del(tau,delta_tensor,[21,21,21],2*np.pi/64))
@@ -141,11 +139,19 @@ print(f'\nInput node vector:\n{input.detach().numpy()}')
 
 # Print predicted and actual closure terms
 print(f'Predicted closure term: {pred.detach().numpy()}')
+print(f'Closure from nu = 1: {nu_deriv_funct.apply(torch.tensor(1, dtype=torch.float32),S,delta_tensor,[21,21,21],2*np.pi/64,tau).detach().numpy()}')
 print(f'Analytical closure term: {delta_local + 2 * dSijdxj}')
 print(f'Actual closure term: {dtau_del(tau,delta_tensor,[21,21,21],2*np.pi/64).detach().numpy()}')
 
+# Test the backwarding function
+delta_test = torch.zeros([3,1])
+grad_output_test = torch.tensor([1,2,3], dtype=torch.float32)
+dnudclose = -2 * dtau_del(S, delta_test, [21,21,21], grid_spacing)
+grad_verify = grad_output_test * dnudclose
+print(f'Backwarding function unsummed test: {dnudclose.detach().numpy()}')
+print(f'Backwarding function test: {grad_verify.sum().view(1)}')
+
 # Print predicted and actual SGS stress tensors
-print(f'Predicted SGS stress tensor:\n{pred_nu*-2*S_tensor}')
 print(f'Actual SGS stress tensor:\n{tau_tensor.detach().numpy()}')
 print(f'Actual S tensor:\n{S_tensor.detach().numpy()}')
 
