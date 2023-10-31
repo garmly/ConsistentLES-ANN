@@ -18,13 +18,21 @@ def read_SGS_binary(filename):
         for isubstep in range(3):
             NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             uu = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+            NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             uv = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+            NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             uw = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+            NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             vu = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+            NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             vv = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+            NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             vw = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+            NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             wu = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+            NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             wv = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+            NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
             ww = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
             
             data[:, :, :, 0, 0, isubstep] = uu
@@ -37,7 +45,7 @@ def read_SGS_binary(filename):
             data[:, :, :, 2, 1, isubstep] = wv
             data[:, :, :, 2, 2, isubstep] = ww
 
-    return torch.tensor(data, dtype=torch.float64)
+    return data
 
 def read_delta(filename):
     if not os.path.exists(filename):
@@ -52,11 +60,11 @@ def read_delta(filename):
         Nz = np.fromfile(binfile, dtype='>i4', count=1)[0]
         z = np.fromfile(binfile, dtype='>f8', count=Nz)
 
-        # Read delta components
+        # Read delta components [ix,iy,iz,isubstep,Fu_i]
         delta = np.empty((Nx, Ny, Nz, 3, 3), dtype=np.float64)
         for i in range(3):
             for j in range(3):
                 NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
                 delta[:, :, :, i, j] = np.fromfile(binfile, dtype='>f8', count=Nx * Ny * Nz).reshape(Nx, Ny, Nz)
 
-    return torch.tensor(delta, dtype=torch.float64)
+    return delta

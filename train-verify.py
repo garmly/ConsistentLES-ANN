@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from training.compute_tau import *
 from training.compute_closure import *
-from training.read_SGS import read_SGS
+from training.read_SGS import *
 
 device = (
     "cuda"
@@ -56,10 +56,10 @@ num_epochs = 200
 loss_list = []
 
 # Read data from .csv files
-tau = read_SGS(f"{path}/filtered/SGS/Tau/TEST.csv", 64, 64, 64)
-R = read_SGS(f"{path}/filtered/SGS/R/TEST.csv", 64, 64, 64)
-S = read_SGS(f"{path}/filtered/SGS/S/TEST.csv", 64, 64, 64)
-delta = read_SGS(f"{path}/filtered/delta/TEST.csv", 64, 64, 64)
+tau = read_SGS_binary(f"{path}/filtered/SGS/Tau/t1.bin")[...,0] /100
+R = read_SGS_binary(f"{path}/filtered/SGS/R/t1.bin")[...,0] / 100
+S = read_SGS_binary(f"{path}/filtered/SGS/S/t1.bin")[...,0] / 100
+delta = read_delta(f"{path}/filtered/delta/t1.bin") / 100
 
 # Convert the data to tensors
 R_tensor = torch.tensor(R[21,21,21], dtype=torch.float32, requires_grad=True)

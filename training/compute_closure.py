@@ -47,4 +47,4 @@ class nu_deriv_funct(torch.autograd.Function):
                 dnudclose = -2 * dtau_del(S, delta, index, grid_spacing)
                 grad = grad_output * dnudclose
                 grad = grad.sum().view(1)
-                return -1*grad, None, None, None, None, None
+                return grad, None, None, None, None, None
