@@ -1,11 +1,14 @@
-import numpy as np
+import torch
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
+from torch.utils.data import Dataset, DataLoader, random_split
 from matplotlib import pyplot as plt
 from training.compute_tau import *
 from training.compute_closure import *
-from training.read_SGS import read_SGS
+from training.read_SGS import *
 
 device = (
     "cuda"
@@ -22,19 +25,171 @@ class SGS_ANN(nn.Module):
     def __init__(self):
         super(SGS_ANN, self).__init__()
         self.requires_grad_(True)
-        self.layer1 = nn.Linear(8, 20)
+        self.layer1 = nn.Linear(6, 20)
         self.layer2 = nn.Linear(20, 20)
-        self.layer3 = nn.Linear(20, 20)
-        self.layer4 = nn.Linear(20, 20)
         self.output_layer = nn.Linear(20, 1)
+        nn.init.xavier_uniform_(self.layer1.weight)
+        nn.init.xavier_uniform_(self.layer2.weight)
+        nn.init.xavier_uniform_(self.output_layer.weight)
 
     def forward(self, x):
         x = torch.sigmoid(self.layer1(x))
         x = torch.sigmoid(self.layer2(x))
-        x = torch.sigmoid(self.layer3(x))
-        x = torch.sigmoid(self.layer4(x))
         x = self.output_layer(x)
         return x
+
+class LESDataset(Dataset):
+    def __init__(self, data_dir, Nx, Ny, Nz, fileno, step=1):
+        self.data_dir = data_dir
+        self.Nx = Nx
+        self.Ny = Ny
+        self.Nz = Nz
+        self.fileno = fileno
+        self.step = step
+        self.R = np.zeros([3,Nx,Ny,Nz,3,3])
+        self.S = np.zeros([3,Nx,Ny,Nz,3,3])
+        self.Tau = np.zeros([3,Nx,Ny,Nz,3,3])
+        self.Delta = np.zeros([3,Nx,Ny,Nz,3,3])
+
+        for i in range(fileno):
+            R_i = read_SGS_binary(f'{self.data_dir}SGS/R/t{i+1}.bin')[...,0]
+            S_i = read_SGS_binary(f'{self.data_dir}SGS/S/t{i+1}.bin')[...,0]
+            Tau_i = read_SGS_binary(f'{self.data_dir}SGS/Tau/t{i+1}.bin')[...,0]
+            Delta_i = read_delta(f'{self.data_dir}delta/t{i+1}.bin')
+            self.R[i,...] = R_i
+            self.S[i,...] = S_i
+            self.Tau[i,...] = Tau_i
+            self.Delta[i,...] = Delta_i
+
+    def __len__(self):
+        return self.fileno * (self.Nx * self.Ny * self.Nz) // self.step
+
+    def __getitem__(self, idx):
+        idx = (idx * self.step) % self.__len__()
+        file_idx = idx // (self.Nx * self.Ny * self.Nz)
+        point_idx = idx % (self.Nx * self.Ny * self.Nz)
+
+        R = self.R[file_idx,...]
+        S = self.S[file_idx,...]
+        Tau = self.Tau[file_idx,...]
+        Delta = self.Delta[file_idx,...]
+
+        # convert point_idx to a coordinate in the grid
+        i = np.zeros(3)
+        i[0] = point_idx // (self.Ny * self.Nz)
+        i[1] = (point_idx % (self.Ny * self.Nz)) // self.Nz
+        i[2] = point_idx % self.Nz
+        i = [int(i[0]), int(i[1]), int(i[2])]
+
+        # Generate the tensors at the specific point in the grid
+        R_tensor = torch.tensor(R[i[0],i[1],i[2]], dtype=torch.float32, requires_grad=True)
+        S_tensor = torch.tensor(S[i[0],i[1],i[2]], dtype=torch.float32, requires_grad=True)
+        Tau_tensor = torch.tensor(Tau[i[0],i[1],i[2]], dtype=torch.float32, requires_grad=True)
+        Delta_tensor = torch.tensor(Delta[i[0],i[1],i[2]], dtype=torch.float32, requires_grad=True)
+
+        # Calculate 6 scalar inputs for the specific point in the file
+        I1 = torch.trace(torch.mm(S_tensor,S_tensor))
+        I2 = torch.trace(torch.mm(R_tensor,R_tensor))
+        I3 = torch.trace(torch.mm(torch.mm(S_tensor,S_tensor),S_tensor))
+        I4 = torch.trace(torch.mm(torch.mm(S_tensor,R_tensor),R_tensor))
+        I5 = torch.trace(torch.mm(torch.mm(S_tensor,S_tensor),torch.mm(R_tensor,R_tensor)))
+        I6 = torch.trace(torch.mm(torch.mm(torch.mm(S_tensor,S_tensor),torch.mm(R_tensor,R_tensor)),torch.mm(S_tensor,R_tensor)))
+
+        # get 6 coefficients for model
+        inputs = torch.tensor([I1, I2, I3, I4, I5, I6], dtype=torch.float32)
+
+        # Get the immediate neighbors of S and Tau at point i with periodic boundary conditions
+        S_neighbors = np.zeros([3,3,3,3,3])
+        Tau_neighbors = np.zeros([3,3,3,3,3])
+        S_neighbors[0,0,0] = S[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[0,0,1] = S[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
+        S_neighbors[0,0,2] = S[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors[0,1,0] = S[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[0,1,1] = S[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
+        S_neighbors[0,1,2] = S[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors[0,2,0] = S[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[0,2,1] = S[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
+        S_neighbors[0,2,2] = S[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors[1,0,0] = S[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[1,0,1] = S[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
+        S_neighbors[1,0,2] = S[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors[1,1,0] = S[(i[0])%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[1,1,1] = S[(i[0])%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
+        S_neighbors[1,1,2] = S[(i[0])%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors[1,2,0] = S[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[1,2,1] = S[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
+        S_neighbors[1,2,2] = S[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors[2,0,0] = S[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[2,0,1] = S[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
+        S_neighbors[2,0,2] = S[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors[2,1,0] = S[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[2,1,1] = S[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
+        S_neighbors[2,1,2] = S[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors[2,2,0] = S[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
+        S_neighbors[2,2,1] = S[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
+        S_neighbors[2,2,2] = S[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[0,0,0] = Tau[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[0,0,1] = Tau[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[0,0,2] = Tau[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[0,1,0] = Tau[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[0,1,1] = Tau[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[0,1,2] = Tau[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[0,2,0] = Tau[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[0,2,1] = Tau[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[0,2,2] = Tau[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[1,0,0] = Tau[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[1,0,1] = Tau[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[1,0,2] = Tau[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[1,1,0] = Tau[(i[0])%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[1,1,1] = Tau[(i[0])%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[1,1,2] = Tau[(i[0])%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[1,2,0] = Tau[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[1,2,1] = Tau[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[1,2,2] = Tau[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[2,0,0] = Tau[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[2,0,1] = Tau[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[2,0,2] = Tau[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[2,1,0] = Tau[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[2,1,1] = Tau[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[2,1,2] = Tau[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
+        Tau_neighbors[2,2,0] = Tau[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
+        Tau_neighbors[2,2,1] = Tau[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
+        Tau_neighbors[2,2,2] = Tau[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
+
+        # Calculate the target data for the specific point in the file
+        target = dtau_del(Tau_neighbors,Delta_tensor,2*np.pi/64)
+
+        # Check if shapes are correct
+        assert inputs.shape == (6,)
+        assert target.shape == (3,)
+        assert S_neighbors.shape == (3,3,3,3,3)
+        assert Tau_neighbors.shape == (3,3,3,3,3)
+        assert Delta_tensor.shape == (3,3)
+
+        return {
+            'inputs': inputs,
+            'target': target,
+            'S_neighbors': S_neighbors,
+            'Tau_neighbors': Tau_neighbors,
+            'delta': Delta_tensor
+        }
+
+# Create data loader
+batch_size = 1
+full_dataset = LESDataset('./in/filtered/', 64, 64, 64, 3, 70)
+
+# Split the data into training and validation datasets
+validation_size = 0.2
+num_validation = int(validation_size * len(full_dataset))
+num_training = len(full_dataset) - num_validation
+train_dataset, validation_dataset = random_split(full_dataset, [num_training, num_validation])
+
+print(f'Training dataset size: {num_training}')
+print(f'Validation dataset size: {num_validation}')
+print(f'Total dataset size: {len(full_dataset)}')
+
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
 
 # Initialize the neural network
 model = SGS_ANN()
@@ -43,86 +198,90 @@ model = SGS_ANN()
 loss_function = nn.MSELoss()
 
 # Define the optimizer as stochastic gradient descent (SGD)
-optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.0000001, momentum=0.9)
 
 # Number of training epochs
-num_epochs = 1
+num_epochs = 30
+epochs_conv = 0
 
-# Number of time snapshots
-num_batches = 10
+print('Starting training...')
+validation_loss_list = []
+training_loss_list = []
+for epoch in range(num_epochs):
+    # Training loss
+    model.train()
+    training_loss = 0.0
+    epoch_counter = 0
+    for batch in train_loader:
+        # Zero the gradients (reset the gradients for each batch)
+        optimizer.zero_grad()
 
-loss_list = []
+        delta_tensor = batch['delta'][0,...]
+        S = batch['S_neighbors'][0,...].detach().numpy()
+        tau = batch['Tau_neighbors'][0,...].detach().numpy()
+        input = batch['inputs'][0,...]
 
-validation = False
-# Training loop
-for epoch in range(num_epochs+1):
-    total_loss = 0.0
+        # Forward pass
+        output = model(input)  # Compute the output of the model
 
-    for batch_num in range(num_batches):
-        # Load the data
-        tau = read_SGS(f"{path}/filtered/SGS/Tau/t{batch_num + 1}.csv", 64, 64, 64)
-        R = read_SGS(f"{path}/filtered/SGS/R/t{batch_num + 1}.csv", 64, 64, 64)
-        S = read_SGS(f"{path}/filtered/SGS/S/t{batch_num + 1}.csv", 64, 64, 64)
-        delta = read_SGS(f"{path}/filtered/delta/t{batch_num + 1}.csv", 64, 64, 64)
+        # Compute the predicted SGS stress tensor
+        pred = nu_deriv_funct.apply(output,S,delta_tensor,2*np.pi/64,tau)
 
-        element = 0
-        for i in range(R.shape[0]):
-            for j in range(R.shape[1]):
-                for k in range(R.shape[2]):
-                    # Convert the data to tensors
-                    R_tensor = torch.tensor(R[i,j,k], dtype=torch.float32, requires_grad=True)
-                    S_tensor = torch.tensor(S[i,j,k], dtype=torch.float32, requires_grad=True)
-                    tau_tensor = torch.tensor(tau[i,j,k], dtype=torch.float32, requires_grad=True)
-                    delta_tensor = torch.tensor(delta[i,j,k,0], dtype=torch.float32, requires_grad=True)
+        # Compute the loss
+        loss = loss_function(pred, batch['target'][0,...])
+        training_loss += loss.item()
 
-                    # Zero the gradients (reset the gradients for each batch)
-                    optimizer.zero_grad()
+        # Backpropagation
+        loss.backward()
+        optimizer.step()
+        
+        epoch_counter += 1
+        print(f'\rEpoch: {epoch}/{num_epochs} | Epoch Progress: {epoch/num_epochs*100:5.2f}%  | Loss (Training): {training_loss/epoch_counter:10.2f}', end='')
+    
+    # Validation loss
+    model.eval()
+    validation_loss = 0.0
+    epoch_counter = 0
+    with torch.no_grad():
+        for batch in validation_loader:
+            delta_tensor = batch['delta'][0,...]
+            S = batch['S_neighbors'][0,...].detach().numpy()
+            tau = batch['Tau_neighbors'][0,...].detach().numpy()
+            input = batch['inputs'][0,...]
+            pred = model(input)
+            loss = loss_function(pred, batch['target'][0,...])
+            validation_loss += loss.item()        
+            epoch_counter += 1
+            print(f'\rEpoch: {epoch}/{num_epochs} | Epoch Progress: {epoch/num_epochs*100:5.2f}%  | Loss (Validation): {validation_loss/epoch_counter:10.2f}', end='')
 
-                    # get 6 coefficients for model
-                    input = torch.tensor([torch.trace(S_tensor),
-                                          torch.trace(R_tensor**2),
-                                          torch.trace(S_tensor**3),
-                                          torch.trace(torch.mul(S_tensor,R_tensor**2)),
-                                          torch.trace(torch.mul(S_tensor**2,R_tensor**2)),
-                                          torch.trace(torch.mul(S_tensor**3,R_tensor**2)),
-                                          1e-6,
-                                          3**0.5 * np.pi * 2 / 64], 
-                                         dtype=torch.float32)
+    if epoch % 10 == 0:
+        torch.save(model.state_dict(), f'./out/SGS_ANN_{epoch}.pth')
+    
+    if validation_loss / len(validation_loader) > training_loss / len(train_loader):
+        epochs_conv += 1
+    else:
+        epochs_conv = 0
 
-                    # Forward pass
-                    output = model(input)  # Compute the output of the model
+    if epochs_conv == 10:
+        print(f'\nTraining converged after {epoch} epochs.')
+        break
+    
+    validation_loss_list.append(validation_loss / len(validation_loader))
+    training_loss_list.append(training_loss / len(train_loader))
 
-                    # Compute the predicted SGS stress tensor
-                    pred_nu = tau_nu_funct.apply(output, S_tensor)
-                    pred = nu_deriv_funct.apply(output,tau,delta_tensor,[i,j,k],2*np.pi/64)
+    if epoch == num_epochs - 1:
+        print(f'\nTraining did not converge after {epoch} epochs.')
 
-                    # Compute the loss
-                    loss = loss_function(pred_nu, dtau_del(tau,delta_tensor,[i,j,k],2*np.pi/64))
-                    loss_list.append(loss.item())
-                    total_loss += loss.item()
+    epoch += 1
 
-                    print(f'\rBatch: {batch_num+1}/{num_batches} | Batch Progress: {element/3:5.2f}% | Loss: {loss.item():10.4f}', end='')
-
-                    # Backpropagation
-                    loss.backward()
-
-                    # Update the model's parameters
-                    if not validation:
-                        optimizer.step()
-
-                    element += 1
-
-    print(f"\nEpoch {epoch+1}/{num_epochs}, Average Loss: {total_loss / num_batches / (64**3):.4f}, Std Dev: {np.std(loss_list):.4f}")
-
-    if epoch == num_epochs-1:
-        validation = True
-        training_list = loss_list
-        loss_list = []
-
-plt.plot(np.convolve(training_list, np.ones(10000), 'valid') / 10000, label='Training', linestyle='--')
-plt.plot(np.convolve(loss_list, np.ones(10000), 'valid') / 10000, label='Validation')
-plt.legend()
-plt.xlabel('Iteration')
+print("\nFinished training.")
+plt.plot(validation_loss_list, label='Average Validation Loss')
+plt.plot(training_loss_list, label='Average Training Loss')
+plt.title('Loss vs. Epoch')
+plt.xlabel('Epoch')
 plt.ylabel('Loss')
+plt.legend()
 plt.show()
-plt.close()
+
+# Save the model
+torch.save(model.state_dict(), './out/SGS_ANN.pth')

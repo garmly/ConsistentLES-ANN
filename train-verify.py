@@ -55,11 +55,55 @@ num_epochs = 200
 
 loss_list = []
 
-# Read data from .csv files
-tau = read_SGS_binary(f"{path}/filtered/SGS/Tau/t1.bin")[...,0] /100
-R = read_SGS_binary(f"{path}/filtered/SGS/R/t1.bin")[...,0] / 100
-S = read_SGS_binary(f"{path}/filtered/SGS/S/t1.bin")[...,0] / 100
-delta = read_delta(f"{path}/filtered/delta/t1.bin") / 100
+def read_SGS_binary_TEST(filename):
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"File {filename} does not exist")
+    
+    with open(filename, 'rb') as binfile:
+        Nx = np.fromfile(binfile, dtype='>i4', count=1)[0]
+        x = np.fromfile(binfile, dtype='>f8', count=Nx)
+        Ny = np.fromfile(binfile, dtype='>i4', count=1)[0]
+        y = np.fromfile(binfile, dtype='>f8', count=Ny)
+        Nz = np.fromfile(binfile, dtype='>i4', count=1)[0]
+        z = np.fromfile(binfile, dtype='>f8', count=Nz)
+
+        data = np.zeros((Nx, Ny, Nz, 3, 3), dtype='f8')
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        uu = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        uv = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        uw = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        vu = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        vv = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        vw = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        wu = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        wv = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        NxNyNz = np.fromfile(binfile, dtype='>i4', count=3)
+        ww = np.fromfile(binfile, dtype='>f8', count=Nx*Ny*Nz).reshape(Nx, Ny, Nz)
+        
+        data[:, :, :, 0, 0] = uu
+        data[:, :, :, 0, 1] = uv
+        data[:, :, :, 0, 2] = uw
+        data[:, :, :, 1, 0] = vu
+        data[:, :, :, 1, 1] = vv
+        data[:, :, :, 1, 2] = vw
+        data[:, :, :, 2, 0] = wu
+        data[:, :, :, 2, 1] = wv
+        data[:, :, :, 2, 2] = ww
+
+    return data
+
+# Read data from .bin files
+tau = read_SGS_binary_TEST(f"{path}/filtered/SGS/Tau/TEST.bin")
+R = read_SGS_binary_TEST(f"{path}/filtered/SGS/R/TEST.bin")
+S = read_SGS_binary_TEST(f"{path}/filtered/SGS/S/TEST.bin")
+delta = read_delta(f"{path}/filtered/delta/TEST.bin")
 
 # Convert the data to tensors
 R_tensor = torch.tensor(R[21,21,21], dtype=torch.float32, requires_grad=True)
@@ -138,10 +182,10 @@ z = np.tile(z, (Nx,Ny,1))
 print(f'\nInput node vector:\n{input.detach().numpy()}')
 
 # Print predicted and actual closure terms
-print(f'Predicted closure term: {pred.detach().numpy()}')
 print(f'Closure from nu = 1: {nu_deriv_funct.apply(torch.tensor(1, dtype=torch.float32),S,delta_tensor,[21,21,21],2*np.pi/64,tau).detach().numpy()}')
 print(f'Analytical closure term: {delta_local + 2 * dSijdxj}')
 print(f'Actual closure term: {dtau_del(tau,delta_tensor,[21,21,21],2*np.pi/64).detach().numpy()}')
+print(f'Predicted closure term: {pred.detach().numpy()}')
 
 # Test the backwarding function
 delta_test = torch.zeros([3,1])
