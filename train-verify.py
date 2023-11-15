@@ -99,21 +99,23 @@ def read_SGS_binary_TEST(filename):
 
     return data
 
+# Define coordinate and grid
+Nx = Ny = Nz = 64
+i = [21,21,21]
+
 # Read data from .bin files
-tau = read_SGS_binary_TEST(f"{path}/filtered/SGS/Tau/TEST.bin")
+Tau = read_SGS_binary_TEST(f"{path}/filtered/SGS/Tau/TEST.bin")
 R = read_SGS_binary_TEST(f"{path}/filtered/SGS/R/TEST.bin")
 S = read_SGS_binary_TEST(f"{path}/filtered/SGS/S/TEST.bin")
 delta = read_delta(f"{path}/filtered/delta/TEST.bin")
 
-# Convert the data to tensors
-R_tensor = torch.tensor(R[21,21,21], dtype=torch.float32, requires_grad=True)
-S_tensor = torch.tensor(S[21,21,21], dtype=torch.float32, requires_grad=True)
-tau_tensor = torch.tensor(tau[21,21,21], dtype=torch.float32, requires_grad=True)
-delta_tensor = torch.tensor(delta[21,21,21], dtype=torch.float32, requires_grad=True)
+# Generate the tensors at the specific point in the grid
+R_tensor = torch.tensor(R[i[0],i[1],i[2]], dtype=torch.float32, requires_grad=True)
+S_tensor = torch.tensor(S[i[0],i[1],i[2]], dtype=torch.float32, requires_grad=True)
+Tau_tensor = torch.tensor(Tau[i[0],i[1],i[2]], dtype=torch.float32, requires_grad=True)
+Delta_tensor = torch.tensor(delta[i[0],i[1],i[2]], dtype=torch.float32, requires_grad=True)
 
-epoch = 0
-total_loss = 0
-
+# Calculate 6 scalar inputs for the specific point in the file
 I1 = torch.trace(torch.mm(S_tensor,S_tensor))
 I2 = torch.trace(torch.mm(R_tensor,R_tensor))
 I3 = torch.trace(torch.mm(torch.mm(S_tensor,S_tensor),S_tensor))
@@ -122,31 +124,101 @@ I5 = torch.trace(torch.mm(torch.mm(S_tensor,S_tensor),torch.mm(R_tensor,R_tensor
 I6 = torch.trace(torch.mm(torch.mm(torch.mm(S_tensor,S_tensor),torch.mm(R_tensor,R_tensor)),torch.mm(S_tensor,R_tensor)))
 
 # get 6 coefficients for model
-input = torch.tensor([I1, I2, I3, I4, I5, I6], dtype=torch.float32)
+inputs = torch.tensor([I1, I2, I3, I4, I5, I6], dtype=torch.float32)
+
+# Get the immediate neighbors of S and Tau at point i with periodic boundary conditions
+S_neighbors = np.zeros([3,3,3,3,3])
+Tau_neighbors = np.zeros([3,3,3,3,3])
+S_neighbors[0,0,0] = S[(i[0]-1)%Nx,(i[1]-1)%Ny,(i[2]-1)%Nz]
+S_neighbors[0,0,1] = S[(i[0]-1)%Nx,(i[1]-1)%Ny,(i[2])%Nz]
+S_neighbors[0,0,2] = S[(i[0]-1)%Nx,(i[1]-1)%Ny,(i[2]+1)%Nz]
+S_neighbors[0,1,0] = S[(i[0]-1)%Nx,(i[1])%Ny,(i[2]-1)%Nz]
+S_neighbors[0,1,1] = S[(i[0]-1)%Nx,(i[1])%Ny,(i[2])%Nz]
+S_neighbors[0,1,2] = S[(i[0]-1)%Nx,(i[1])%Ny,(i[2]+1)%Nz]
+S_neighbors[0,2,0] = S[(i[0]-1)%Nx,(i[1]+1)%Ny,(i[2]-1)%Nz]
+S_neighbors[0,2,1] = S[(i[0]-1)%Nx,(i[1]+1)%Ny,(i[2])%Nz]
+S_neighbors[0,2,2] = S[(i[0]-1)%Nx,(i[1]+1)%Ny,(i[2]+1)%Nz]
+S_neighbors[1,0,0] = S[(i[0])%Nx,(i[1]-1)%Ny,(i[2]-1)%Nz]
+S_neighbors[1,0,1] = S[(i[0])%Nx,(i[1]-1)%Ny,(i[2])%Nz]
+S_neighbors[1,0,2] = S[(i[0])%Nx,(i[1]-1)%Ny,(i[2]+1)%Nz]
+S_neighbors[1,1,0] = S[(i[0])%Nx,(i[1])%Ny,(i[2]-1)%Nz]
+S_neighbors[1,1,1] = S[(i[0])%Nx,(i[1])%Ny,(i[2])%Nz]
+S_neighbors[1,1,2] = S[(i[0])%Nx,(i[1])%Ny,(i[2]+1)%Nz]
+S_neighbors[1,2,0] = S[(i[0])%Nx,(i[1]+1)%Ny,(i[2]-1)%Nz]
+S_neighbors[1,2,1] = S[(i[0])%Nx,(i[1]+1)%Ny,(i[2])%Nz]
+S_neighbors[1,2,2] = S[(i[0])%Nx,(i[1]+1)%Ny,(i[2]+1)%Nz]
+S_neighbors[2,0,0] = S[(i[0]+1)%Nx,(i[1]-1)%Ny,(i[2]-1)%Nz]
+S_neighbors[2,0,1] = S[(i[0]+1)%Nx,(i[1]-1)%Ny,(i[2])%Nz]
+S_neighbors[2,0,2] = S[(i[0]+1)%Nx,(i[1]-1)%Ny,(i[2]+1)%Nz]
+S_neighbors[2,1,0] = S[(i[0]+1)%Nx,(i[1])%Ny,(i[2]-1)%Nz]
+S_neighbors[2,1,1] = S[(i[0]+1)%Nx,(i[1])%Ny,(i[2])%Nz]
+S_neighbors[2,1,2] = S[(i[0]+1)%Nx,(i[1])%Ny,(i[2]+1)%Nz]
+S_neighbors[2,2,0] = S[(i[0]+1)%Nx,(i[1]+1)%Ny,(i[2]-1)%Nz]
+S_neighbors[2,2,1] = S[(i[0]+1)%Nx,(i[1]+1)%Ny,(i[2])%Nz]
+S_neighbors[2,2,2] = S[(i[0]+1)%Nx,(i[1]+1)%Ny,(i[2]+1)%Nz]
+Tau_neighbors[0,0,0] = Tau[(i[0]-1)%Nx,(i[1]-1)%Ny,(i[2]-1)%Nz]
+Tau_neighbors[0,0,1] = Tau[(i[0]-1)%Nx,(i[1]-1)%Ny,(i[2])%Nz]
+Tau_neighbors[0,0,2] = Tau[(i[0]-1)%Nx,(i[1]-1)%Ny,(i[2]+1)%Nz]
+Tau_neighbors[0,1,0] = Tau[(i[0]-1)%Nx,(i[1])%Ny,(i[2]-1)%Nz]
+Tau_neighbors[0,1,1] = Tau[(i[0]-1)%Nx,(i[1])%Ny,(i[2])%Nz]
+Tau_neighbors[0,1,2] = Tau[(i[0]-1)%Nx,(i[1])%Ny,(i[2]+1)%Nz]
+Tau_neighbors[0,2,0] = Tau[(i[0]-1)%Nx,(i[1]+1)%Ny,(i[2]-1)%Nz]
+Tau_neighbors[0,2,1] = Tau[(i[0]-1)%Nx,(i[1]+1)%Ny,(i[2])%Nz]
+Tau_neighbors[0,2,2] = Tau[(i[0]-1)%Nx,(i[1]+1)%Ny,(i[2]+1)%Nz]
+Tau_neighbors[1,0,0] = Tau[(i[0])%Nx,(i[1]-1)%Ny,(i[2]-1)%Nz]
+Tau_neighbors[1,0,1] = Tau[(i[0])%Nx,(i[1]-1)%Ny,(i[2])%Nz]
+Tau_neighbors[1,0,2] = Tau[(i[0])%Nx,(i[1]-1)%Ny,(i[2]+1)%Nz]
+Tau_neighbors[1,1,0] = Tau[(i[0])%Nx,(i[1])%Ny,(i[2]-1)%Nz]
+Tau_neighbors[1,1,1] = Tau[(i[0])%Nx,(i[1])%Ny,(i[2])%Nz]
+Tau_neighbors[1,1,2] = Tau[(i[0])%Nx,(i[1])%Ny,(i[2]+1)%Nz]
+Tau_neighbors[1,2,0] = Tau[(i[0])%Nx,(i[1]+1)%Ny,(i[2]-1)%Nz]
+Tau_neighbors[1,2,1] = Tau[(i[0])%Nx,(i[1]+1)%Ny,(i[2])%Nz]
+Tau_neighbors[1,2,2] = Tau[(i[0])%Nx,(i[1]+1)%Ny,(i[2]+1)%Nz]
+Tau_neighbors[2,0,0] = Tau[(i[0]+1)%Nx,(i[1]-1)%Ny,(i[2]-1)%Nz]
+Tau_neighbors[2,0,1] = Tau[(i[0]+1)%Nx,(i[1]-1)%Ny,(i[2])%Nz]
+Tau_neighbors[2,0,2] = Tau[(i[0]+1)%Nx,(i[1]-1)%Ny,(i[2]+1)%Nz]
+Tau_neighbors[2,1,0] = Tau[(i[0]+1)%Nx,(i[1])%Ny,(i[2]-1)%Nz]
+Tau_neighbors[2,1,1] = Tau[(i[0]+1)%Nx,(i[1])%Ny,(i[2])%Nz]
+Tau_neighbors[2,1,2] = Tau[(i[0]+1)%Nx,(i[1])%Ny,(i[2]+1)%Nz]
+Tau_neighbors[2,2,0] = Tau[(i[0]+1)%Nx,(i[1]+1)%Ny,(i[2]-1)%Nz]
+Tau_neighbors[2,2,1] = Tau[(i[0]+1)%Nx,(i[1]+1)%Ny,(i[2])%Nz]
+Tau_neighbors[2,2,2] = Tau[(i[0]+1)%Nx,(i[1]+1)%Ny,(i[2]+1)%Nz]
+
+# Calculate the target data for the specific point in the file
+target = dtau_del(Tau_neighbors,Delta_tensor,2*np.pi/64)
 
 # Training loop
-for i in range(num_epochs):
+for epoch in range(num_epochs):
+    # Training loss
+    model.train()
+    training_loss = 0.0
+    epoch_counter = 0
+
     # Zero the gradients (reset the gradients for each batch)
     optimizer.zero_grad()
+
+    delta_tensor = Delta_tensor.view(1,3,3)
+    S_local = S
+    tau = Tau
+    input = inputs.view(1,6)
 
     # Forward pass
     output = model(input)  # Compute the output of the model
 
     # Compute the predicted SGS stress tensor
-    pred = nu_deriv_funct.apply(output,S,delta_tensor,[21,21,21],2*np.pi/64,tau)
+    pred = nu_deriv_funct.apply(output,S,delta_tensor,2*np.pi/64,tau)
 
     # Compute the loss
-    loss = loss_function(pred, dtau_del(tau,delta_tensor,[21,21,21],2*np.pi/64))
-    loss_list.append(loss.item())
-    total_loss += loss.item()
-
-    print(f'\rEpoch: {epoch}/{num_epochs} | Epoch Progress: {epoch/num_epochs*100:5.2f}% | Loss: {loss.item():10.2f}', end='')
+    loss = loss_function(pred, target)
+    training_loss += loss.item()
 
     # Backpropagation
     loss.backward()
     optimizer.step()
-
-    epoch += 1
+    
+    epoch_counter += 1
+    print(f'\rEpoch: {epoch}/{num_epochs} | Epoch Progress: {epoch/num_epochs*100:5.2f}%  | Loss (Training): {training_loss/epoch_counter:10.2f}', end='')
+    
 
 # Calculating analytical closure term -2 * d_Sij/dxj
 grid_spacing = np.pi * 2 / 64
@@ -196,11 +268,11 @@ print(f'Backwarding function unsummed test: {dnudclose.detach().numpy()}')
 print(f'Backwarding function test: {grad_verify.sum().view(1)}')
 
 # Print predicted and actual SGS stress tensors
-print(f'Actual SGS stress tensor:\n{tau_tensor.detach().numpy()}')
+print(f'Actual SGS stress tensor:\n{tau[i].detach().numpy()}')
 print(f'Actual S tensor:\n{S_tensor.detach().numpy()}')
 
 # Print loss from nu_t = 1, -2*S_ij vs tau_ij (~0)
-print(f'Loss from nu_t = 1: {loss_function(-2*S_tensor, tau_tensor).item()}')
+print(f'Loss from nu_t = 1: {loss_function(-2*S_tensor, tau[i]).item()}')
 
 conv_size = 1
 plt.plot(np.convolve(loss_list, np.ones(conv_size), 'valid') / conv_size, label='Training')

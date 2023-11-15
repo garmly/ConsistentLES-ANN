@@ -25,9 +25,9 @@ class SGS_ANN(nn.Module):
     def __init__(self):
         super(SGS_ANN, self).__init__()
         self.requires_grad_(True)
-        self.layer1 = nn.Linear(6, 20)
-        self.layer2 = nn.Linear(20, 20)
-        self.output_layer = nn.Linear(20, 1)
+        self.layer1 = nn.Linear(6, 50)
+        self.layer2 = nn.Linear(50, 50)
+        self.output_layer = nn.Linear(50, 1)
         nn.init.xavier_uniform_(self.layer1.weight)
         nn.init.xavier_uniform_(self.layer2.weight)
         nn.init.xavier_uniform_(self.output_layer.weight)
@@ -46,10 +46,10 @@ class LESDataset(Dataset):
         self.Nz = Nz
         self.fileno = fileno
         self.step = step
-        self.R = np.zeros([3,Nx,Ny,Nz,3,3])
-        self.S = np.zeros([3,Nx,Ny,Nz,3,3])
-        self.Tau = np.zeros([3,Nx,Ny,Nz,3,3])
-        self.Delta = np.zeros([3,Nx,Ny,Nz,3,3])
+        self.R = np.zeros([fileno,Nx,Ny,Nz,3,3])
+        self.S = np.zeros([fileno,Nx,Ny,Nz,3,3])
+        self.Tau = np.zeros([fileno,Nx,Ny,Nz,3,3])
+        self.Delta = np.zeros([fileno,Nx,Ny,Nz,3,3])
 
         for i in range(fileno):
             R_i = read_SGS_binary(f'{self.data_dir}SGS/R/t{i+1}.bin')[...,0]
@@ -176,7 +176,7 @@ class LESDataset(Dataset):
 
 # Create data loader
 batch_size = 1
-full_dataset = LESDataset('./in/filtered/', 64, 64, 64, 3, 70)
+full_dataset = LESDataset('./in/filtered/', 64, 64, 64, 8, 700)
 
 # Split the data into training and validation datasets
 validation_size = 0.2
@@ -198,10 +198,10 @@ model = SGS_ANN()
 loss_function = nn.MSELoss()
 
 # Define the optimizer as stochastic gradient descent (SGD)
-optimizer = optim.SGD(model.parameters(), lr=0.0000001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.00000001, momentum=0.9, weight_decay=0.0001)
 
 # Number of training epochs
-num_epochs = 30
+num_epochs = 20
 epochs_conv = 0
 
 print('Starting training...')
@@ -250,11 +250,11 @@ for epoch in range(num_epochs):
             input = batch['inputs'][0,...]
             pred = model(input)
             loss = loss_function(pred, batch['target'][0,...])
-            validation_loss += loss.item()        
+            validation_loss += loss.item()
             epoch_counter += 1
             print(f'\rEpoch: {epoch}/{num_epochs} | Epoch Progress: {epoch/num_epochs*100:5.2f}%  | Loss (Validation): {validation_loss/epoch_counter:10.2f}', end='')
 
-    if epoch % 10 == 0:
+    if epoch % 20 == 0:
         torch.save(model.state_dict(), f'./out/SGS_ANN_{epoch}.pth')
     
     if validation_loss / len(validation_loader) > training_loss / len(train_loader):
@@ -262,7 +262,7 @@ for epoch in range(num_epochs):
     else:
         epochs_conv = 0
 
-    if epochs_conv == 10:
+    if epochs_conv == 20:
         print(f'\nTraining converged after {epoch} epochs.')
         break
     
