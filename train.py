@@ -287,7 +287,7 @@ plt.title('Loss vs. Epoch')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.show()
+plt.savefig('./out/loss.png')
 
 # Save the model
 torch.save(model.state_dict(), './out/SGS_ANN.pth')
