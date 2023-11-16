@@ -198,7 +198,7 @@ model = SGS_ANN()
 loss_function = nn.MSELoss()
 
 # Define the optimizer as stochastic gradient descent (SGD)
-optimizer = optim.SGD(model.parameters(), lr=0.00000001, momentum=0.9, weight_decay=0.0001)
+optimizer = optim.SGD(model.parameters(), lr=0.00001, momentum=0.9, weight_decay=0.0001)
 
 # Number of training epochs
 num_epochs = 20
@@ -233,6 +233,10 @@ for epoch in range(num_epochs):
 
         # Backpropagation
         loss.backward()
+
+        # Clip the gradients
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 10000)
+
         optimizer.step()
         
         epoch_counter += 1
@@ -256,6 +260,8 @@ for epoch in range(num_epochs):
 
     if epoch % 20 == 0:
         torch.save(model.state_dict(), f'./out/SGS_ANN_{epoch}.pth')
+        with open(f'./out/ANN_loss.bin', 'wb') as f:
+            np.array([validation_loss_list, training_loss_list]).tofile(f)
     
     if validation_loss / len(validation_loader) > training_loss / len(train_loader):
         epochs_conv += 1
