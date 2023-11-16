@@ -23,7 +23,7 @@ path = './in'
 # Define the neural network architecture
 class SGS_ANN(nn.Module):
     def __init__(self):
-        super(SGS_ANN, self).__init__()
+        super().__init__()
         self.requires_grad_(True)
         self.layer1 = nn.Linear(6, 50)
         self.layer2 = nn.Linear(50, 50)
@@ -101,60 +101,15 @@ class LESDataset(Dataset):
         # Get the immediate neighbors of S and Tau at point i with periodic boundary conditions
         S_neighbors = np.zeros([3,3,3,3,3])
         Tau_neighbors = np.zeros([3,3,3,3,3])
-        S_neighbors[0,0,0] = S[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[0,0,1] = S[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
-        S_neighbors[0,0,2] = S[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
-        S_neighbors[0,1,0] = S[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[0,1,1] = S[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
-        S_neighbors[0,1,2] = S[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
-        S_neighbors[0,2,0] = S[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[0,2,1] = S[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
-        S_neighbors[0,2,2] = S[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
-        S_neighbors[1,0,0] = S[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[1,0,1] = S[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
-        S_neighbors[1,0,2] = S[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
-        S_neighbors[1,1,0] = S[(i[0])%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[1,1,1] = S[(i[0])%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
-        S_neighbors[1,1,2] = S[(i[0])%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
-        S_neighbors[1,2,0] = S[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[1,2,1] = S[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
-        S_neighbors[1,2,2] = S[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
-        S_neighbors[2,0,0] = S[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[2,0,1] = S[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
-        S_neighbors[2,0,2] = S[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
-        S_neighbors[2,1,0] = S[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[2,1,1] = S[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
-        S_neighbors[2,1,2] = S[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
-        S_neighbors[2,2,0] = S[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
-        S_neighbors[2,2,1] = S[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
-        S_neighbors[2,2,2] = S[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[0,0,0] = Tau[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[0,0,1] = Tau[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[0,0,2] = Tau[(i[0]-1)%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[0,1,0] = Tau[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[0,1,1] = Tau[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[0,1,2] = Tau[(i[0]-1)%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[0,2,0] = Tau[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[0,2,1] = Tau[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[0,2,2] = Tau[(i[0]-1)%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[1,0,0] = Tau[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[1,0,1] = Tau[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[1,0,2] = Tau[(i[0])%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[1,1,0] = Tau[(i[0])%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[1,1,1] = Tau[(i[0])%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[1,1,2] = Tau[(i[0])%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[1,2,0] = Tau[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[1,2,1] = Tau[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[1,2,2] = Tau[(i[0])%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[2,0,0] = Tau[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[2,0,1] = Tau[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[2,0,2] = Tau[(i[0]+1)%self.Nx,(i[1]-1)%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[2,1,0] = Tau[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[2,1,1] = Tau[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[2,1,2] = Tau[(i[0]+1)%self.Nx,(i[1])%self.Ny,(i[2]+1)%self.Nz]
-        Tau_neighbors[2,2,0] = Tau[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2]-1)%self.Nz]
-        Tau_neighbors[2,2,1] = Tau[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2])%self.Nz]
-        Tau_neighbors[2,2,2] = Tau[(i[0]+1)%self.Nx,(i[1]+1)%self.Ny,(i[2]+1)%self.Nz]
+        S_neighbors = np.zeros([3,3,3,3,3])
+        Tau_neighbors = np.zeros([3,3,3,3,3])
+
+        # Get Tau and S neghbors
+        for a in range(3):
+            for b in range(3):
+                for c in range(3):
+                    S_neighbors[a,b,c] = S[(i[0]+a-1)%self.Nx,(i[1]+b-1)%self.Ny,(i[2]+c-1)%self.Nz]
+                    Tau_neighbors[a,b,c] = Tau[(i[0]+a-1)%self.Nx,(i[1]+b-1)%self.Ny,(i[2]+c-1)%self.Nz]
 
         # Calculate the target data for the specific point in the file
         target = dtau_del(Tau_neighbors,Delta_tensor,2*np.pi/64)
@@ -198,7 +153,7 @@ model = SGS_ANN()
 loss_function = nn.MSELoss()
 
 # Define the optimizer as stochastic gradient descent (SGD)
-optimizer = optim.SGD(model.parameters(), lr=0.00001, momentum=0.9, weight_decay=0.0001)
+optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=0.0001)
 
 # Number of training epochs
 num_epochs = 20
@@ -209,7 +164,7 @@ validation_loss_list = []
 training_loss_list = []
 for epoch in range(num_epochs):
     # Training loss
-    model.train()
+    model.train(True)
     training_loss = 0.0
     epoch_counter = 0
     for batch in train_loader:
@@ -235,7 +190,7 @@ for epoch in range(num_epochs):
         loss.backward()
 
         # Clip the gradients
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 10000)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 500)
 
         optimizer.step()
         
@@ -257,6 +212,7 @@ for epoch in range(num_epochs):
             validation_loss += loss.item()
             epoch_counter += 1
             print(f'\rEpoch: {epoch}/{num_epochs} | Epoch Progress: {epoch/num_epochs*100:5.2f}%  | Loss (Validation): {validation_loss/epoch_counter:10.2f}', end='')
+    print()
 
     if epoch % 20 == 0:
         torch.save(model.state_dict(), f'./out/SGS_ANN_{epoch}.pth')
@@ -280,7 +236,7 @@ for epoch in range(num_epochs):
 
     epoch += 1
 
-print("\nFinished training.")
+print("\nFinished training!")
 plt.plot(validation_loss_list, label='Average Validation Loss')
 plt.plot(training_loss_list, label='Average Training Loss')
 plt.title('Loss vs. Epoch')
