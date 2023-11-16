@@ -153,7 +153,7 @@ model = SGS_ANN()
 loss_function = nn.MSELoss()
 
 # Define the optimizer as stochastic gradient descent (SGD)
-optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=0.0001)
+optimizer = optim.SGD(model.parameters(), lr=0.000001)
 
 # Number of training epochs
 num_epochs = 20
@@ -190,7 +190,7 @@ for epoch in range(num_epochs):
         loss.backward()
 
         # Clip the gradients
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 500)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1000)
 
         optimizer.step()
         
@@ -208,13 +208,14 @@ for epoch in range(num_epochs):
             tau = batch['Tau_neighbors'][0,...].detach().numpy()
             input = batch['inputs'][0,...]
             pred = model(input)
+            pred = nu_deriv_funct.apply(pred,S,delta_tensor,2*np.pi/64,tau)
             loss = loss_function(pred, batch['target'][0,...])
             validation_loss += loss.item()
             epoch_counter += 1
             print(f'\rEpoch: {epoch}/{num_epochs} | Epoch Progress: {epoch/num_epochs*100:5.2f}%  | Loss (Validation): {validation_loss/epoch_counter:10.2f}', end='')
     print()
 
-    if epoch % 20 == 0:
+    if epoch % 10 == 0:
         torch.save(model.state_dict(), f'./out/SGS_ANN_{epoch}.pth')
         with open(f'./out/ANN_loss.bin', 'wb') as f:
             np.array([validation_loss_list, training_loss_list]).tofile(f)
